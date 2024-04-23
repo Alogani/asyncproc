@@ -1,5 +1,5 @@
-import std/[options, strutils, deques]
-import asyncio, asyncio/[asyncpipe, asyncstream, asynchainreader, asynctee, asynciodelayed]
+import std/[options, strutils]
+import asyncio, asyncio/[asyncpipe]
 
 import ./procargs {.all.}
 import ./procenv {.all.}
@@ -72,37 +72,11 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         stdoutCapture = streamsBuilder.captureStdout()
     if CaptureOutputErr in args.options and MergeStderr notin args.options:
         stderrCapture = streamsBuilder.captureStderr()
-    var stdinChild, stdoutChild, stderrChild: AsyncFile
-    var useFakePty: bool
-    if false: #Interactive in args.options and stdinBuilder != nil and stdinBuilder != stdinAsync:
-        ## Mandatory to create a fake terminal
-        raise newException(AssertionDefect, "Not implemented yet")
-        #[
-        useFakePty = true
-        var streams = newChildTerminal(MergeStderr in args.options)
-        stdinChild = streams.stdinChild
-        stdoutChild = streams.stdoutChild
-        stderrChild = streams.stderrChild
-        var
-            stdinWriter = streams.stdinWriter
-            stdoutReader = streams.stdoutReader
-            stderrReader = streams.stderrReader
-        closeAfterSpawn.add @[stdinChild, stdoutChild, stderrChild]
-        closeAfterWaited.add @[stdoutReader]
-        discard stdinBuilder.transfer(stdinWriter, waitFinished)
-        outputTransferFinishedList.add stdoutReader.transfer(stdoutBuilder)
-        if stderrReader != nil:
-            outputTransferFinishedList.add stderrReader.transfer(stderrBuilder)
-        ]#
-    else:
-        (stdinChild, stdoutChild, stderrChild) = streamsBuilder.toChildFile(waitFinished)
-        
-    var passFds = toPassFds(stdinChild, stdoutChild, stderrChild)
+    let (passFds, useFakePty , afterSpawnCleanup, afterWaitCleanup) = streamsBuilder.toChildStream(
+        Interactive in args.options, waitFinished)
     let childProc = startProcess(cmdBuilt[0], @[processName] & cmdBuilt[1..^1],
         passFds, env, args.workingDir, Daemon in args.options, fakePty = useFakePty)
-    streamsBuilder.closeIfOwned(stdinChild)
-    streamsBuilder.closeIfOwned(stdoutChild)
-    streamsBuilder.closeIfOwned(stderrChild)
+    afterSpawnCleanup()
     result = AsyncProc(
         childProc: childProc,
         cmd: cmdBuilt,
@@ -113,8 +87,8 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         outputTransferFinished: streamsBuilder.waitForAllTransfers(),
         waitFinished: waitFinished,
         cleanups: proc() {.closure.} =
-            #if useFakePty:
-            #    restoreTerminal()
+            if afterWaitCleanup != nil:
+                afterWaitCleanup()
             streamsBuilder.closeAllOwnedStreams()
     )
     

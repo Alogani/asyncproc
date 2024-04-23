@@ -2,6 +2,8 @@ import std/[os, exitprocs, posix, termios, bitops, options]
 import std/[tables, strutils]
 import asyncio
 
+import ./procstream {.all.}
+
 # Library
 var PR_SET_PDEATHSIG {.importc, header: "<sys/prctl.h>".}: cint
 proc prctl(option, argc2: cint): cint {.varargs, header: "<sys/prctl.h>".}
@@ -20,13 +22,16 @@ const defaultPassFds = @[
     (src: FileHandle(2), dest: FileHandle(2)),
 ]
 
-
 var TermiosBackup: Option[Termios]
 
-proc newChildTerminal*(mergeStderr: bool): tuple[
-    stdinChild: AsyncFile, stdoutChild: AsyncFile, stderrChild: AsyncFile,
-    stdinWriter: AsyncIoBase, stdoutReader: AsyncIoBase, stderrReader: AsyncIoBase, ]
-proc restoreTerminal*()
+proc toChildStream*(streamsBuilder: StreamsBuilder, isInteractive: bool, childWaited: Event): tuple[
+    passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
+    useFakePty: bool,
+    afterSpawnCleanup: proc(),
+    afterWaitCleanup: proc()
+ ]
+proc newChildTerminalPair(): tuple[master, slave: AsyncFile]
+proc restoreTerminal()
 proc startProcess*(command: string, args: seq[string],
     passFds = defaultPassFds, env: Table[string, string],
     workingDir: string = "", daemon = false, fakePty = false): ChildProc
@@ -41,21 +46,64 @@ proc waitImpl(p: var ChildProc, hang: bool)
 proc envToCStringArray(t: Table[string, string]): cstringArray
 proc readAll(fd: FileHandle): string
 
-proc newChildTerminal*(mergeStderr: bool): tuple[
-    stdinChild, stdoutChild, stderrChild: AsyncFile,
-    stdinWriter, stdoutReader, stderrReader: AsyncIoBase,
-] =
-    ## Abstraction to help bridge the gap between low-level os dependent code and high level one
-    ## Side effect: make parent's terminal raw (so unusable interactivly -> use restoreTerminal)
-    ##      -> so unusable interactvly
-    ##      -> unless restoreTerminal() is called (automatically called when main program quit with addExitProc)
-    ## not MergingStderr require opening two more file descriptors, more processing, and might not be as reliable
+
+proc toChildStream*(streamsBuilder: StreamsBuilder, isInteractive: bool, childWaited: Event): tuple[
+    passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
+    useFakePty: bool,
+    afterSpawnCleanup: proc(),
+    afterWaitCleanup: proc()
+ ] =
+    var stdinChild, stdoutChild, stderrChild: AsyncFile
+    var useFakePty = false
+    var afterSpawnCleanup, afterWaitCleanup: proc()
+    if isInteractive and streamsBuilder.stdin != nil and streamsBuilder.stdin != stdinAsync:
+        useFakePty = true
+        var (master, slave) = newChildTerminalPair()
+        if streamsBuilder.mergeStderr:
+            stdinChild = slave
+            stdoutChild = slave
+            stderrChild = slave
+            discard streamsBuilder.stdin.transfer(master, childWaited)
+            streamsBuilder.transferWaiters.add master.transfer(streamsBuilder.stdout)
+            streamsBuilder.ownedStreams.add master
+            afterSpawnCleanup = (proc() = slave.close)
+            afterWaitCleanup = (proc() = restoreTerminal())
+        else:
+            raise newException(AssertionDefect, "Not implemented yet")
+        #[
+        stdinChild = streams.stdinChild
+        stdoutChild = streams.stdoutChild
+        stderrChild = streams.stderrChild
+        var
+            stdinWriter = streams.stdinWriter
+            stdoutReader = streams.stdoutReader
+            stderrReader = streams.stderrReader
+        closeAfterSpawn.add @[stdinChild, stdoutChild, stderrChild]
+        closeAfterWaited.add @[stdoutReader]
+        discard stdinBuilder.transfer(stdinWriter, waitFinished)
+        outputTransferFinishedList.add stdoutReader.transfer(stdoutBuilder)
+        if stderrReader != nil:
+            outputTransferFinishedList.add stderrReader.transfer(stderrBuilder)
+        ]#
+    else:
+        (stdinChild, stdoutChild, stderrChild) = streamsBuilder.toChildFile(childWaited)
+        afterSpawnCleanup = (proc() =
+            streamsBuilder.closeIfOwned(stdinChild)
+            streamsBuilder.closeIfOwned(stdoutChild)
+            streamsBuilder.closeIfOwned(stderrChild)
+        )
+    return (
+        toPassFds(stdinChild, stdoutChild, stderrChild),
+        useFakePty,
+        afterSpawnCleanup,
+        afterWaitCleanup,
+    )
+
+proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
     if TermiosBackup.isNone():
         TermiosBackup = some Termios()
         if tcGetAttr(STDIN_FILENO, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
-        addExitProc(proc() =
-            if tcsetattr(0, TCSANOW, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
-        )        
+        addExitProc(proc() = restoreTerminal())        
     var newParentTermios: Termios
     # Make the parent raw
     newParentTermios = TermiosBackup.get()
@@ -69,18 +117,12 @@ proc newChildTerminal*(mergeStderr: bool): tuple[
     var master, slave: cint
     # default termios param shall be ok
     if openpty(master, slave, nil, nil, nil) == -1: raiseOSError(osLastError())
-    let
-        masterIo = AsyncFile.new(master)
-        slaveIo = AsyncFile.new(slave)
-    if mergeStderr:
-        # Classical way terminal works, should work 100% as intended
-        return (slaveIo, slaveIo, slaveIo, masterIo, masterIo, nil)
-    else:
-        raise newException(AssertionDefect, "Not implemnted yet")
-    
-proc restoreTerminal*() =
+    return (AsyncFile.new(master), AsyncFile.new(slave))
+
+proc restoreTerminal() =
     if TermiosBackup.isSome():
-        if tcsetattr(STDIN_FILENO, TCSANOW, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
+        if tcsetattr(STDIN_FILENO, TCSANOW, addr TermiosBackup.get()) == -1:
+            raiseOSError(osLastError())
 
 proc startProcess*(command: string, args: seq[string],
 passFds = defaultPassFds, env: Table[string, string],
