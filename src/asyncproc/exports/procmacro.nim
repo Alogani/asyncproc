@@ -44,7 +44,7 @@ proc implicitAwaitHelper(identNames: seq[string], node: NimNode): NimNode =
             for child in node[1..^1]:
                 nodeCopy.add implicitAwaitHelper(identNames, child)
             return newCall("await", nodeCopy)
-        if node[0][0].strVal in identNames:
+        if node[0][0].kind == nnkIdent and node[0][0].strVal in identNames:
             for child in node:
                 nodeCopy.add implicitAwaitHelper(identNames, child)
             return newCall("await", nodeCopy)
