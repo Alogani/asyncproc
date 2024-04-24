@@ -31,7 +31,7 @@ proc buildToStreams*(builder: StreamsBuilder): tuple[
     streams: tuple[stdin, stdout, stderr: AsyncIoBase],
     captures: tuple[input, output, outputErr: Future[string]],
     ownedStreams: seq[AsyncIoBase], transferWaiters: seq[Future[void]]]
-proc buildToChildFile*(builder: StreamsBuilder, childWaited: Event): tuple[
+proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple[
     stdFiles: tuple[stdin, stdout, stderr: Asyncfile],
     captures: tuple[input, output, outputErr: Future[string]],
     ownedStreams: seq[AsyncIoBase], transferWaiters: seq[Future[void]]]
@@ -126,7 +126,7 @@ proc buildToStreams*(builder: StreamsBuilder): tuple[
         builder.transferWaiters
     )
 
-proc buildToChildFile*(builder: StreamsBuilder, childWaited: Event): tuple[
+proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple[
     stdFiles: tuple[stdin, stdout, stderr: Asyncfile],
     captures: tuple[input, output, outputErr: Future[string]],
     ownedStreams: seq[AsyncIoBase], transferWaiters: seq[Future[void]]
@@ -141,7 +141,7 @@ proc buildToChildFile*(builder: StreamsBuilder, childWaited: Event): tuple[
             AsyncFile(builder.stdin)
         else:
             var pipe = AsyncPipe.new()
-            discard builder.stdin.transfer(pipe.writer, childWaited)
+            discard builder.stdin.transfer(pipe.writer, closeEvent)
             builder.ownedStreams.add pipe
             pipe.reader
     let stdout = builder.buildOutChildFileImpl(builder.stdout)

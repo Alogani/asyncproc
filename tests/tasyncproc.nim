@@ -97,10 +97,10 @@ proc main() {.async.} =
         var sh2 = ProcArgs(prefixCmd: @["sh", "-c"], options: { Interactive, CaptureInput, CaptureOutput, CaptureOutputErr })
         var sh2Merged = sh2.merge(toAdd = { MergeStderr })
 
-        check (await sh2.run(@["echo Hello"])).output == "Hello\n"
         var outputStr = (await sh2Merged.run(@["echo Hello"])).output
         check outputStr == "Hello\13\n"
         check outputStr.withoutLineEnd() == "Hello"
+        check (await sh2.run(@["echo Hello"])).output == "Hello\13\n"
         stdout.write "Please provide an input: "
         var procRes = await sh2.run(@["read a; echo $a"])
         check procRes.input == procRes.output

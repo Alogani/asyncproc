@@ -22,7 +22,6 @@ type
         captureStreams: tuple[input, output, outputErr: Future[string]]
         isBeingWaited: Listener
         transfersFinished: Future[void]
-        waitFinished: Event
         cleanups: proc()
 
 #[
@@ -43,7 +42,6 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         args = sh.merge(argsModifier)
         cmdBuilt = args.buildCommand(cmd)
         processName = (if args.processName == "": cmdBuilt[0] else: args.processName)
-        waitFinished = Event.new()
         env = (
             if SetEnvOnCmdLine in args.options:
                 newEmptyEnv()
@@ -72,7 +70,7 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
     if CaptureOutputErr in args.options and MergeStderr notin args.options:
         streamsBuilder.flags.incl CaptureStderr
     let (passFds, captures, transfersFinished, useFakePty, afterSpawnCleanup, afterWaitCleanup) =
-        streamsBuilder.toChildStream(waitFinished)
+        streamsBuilder.toChildStream()
     let childProc = startProcess(cmdBuilt[0], @[processName] & cmdBuilt[1..^1],
         passFds, env, args.workingDir, Daemon in args.options, fakePty = useFakePty)
     afterSpawnCleanup()
@@ -84,7 +82,6 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         captureStreams: captures,
         isBeingWaited: Listener.new(),
         transfersFinished: transfersFinished,
-        waitFinished: waitFinished,
         cleanups: afterWaitCleanup,
     )
     
@@ -101,7 +98,6 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
         if not self.isBeingWaited.isTriggered():
             raise newException(OsError, "Timeout expired")
     let exitCode = self.childProc.wait()
-    self.waitFinished.trigger()
     self.cleanups()
     if self.transfersFinished != nil:
         await self.transfersFinished
