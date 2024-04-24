@@ -4,9 +4,6 @@ import asyncio, asyncio/[asyncpipe, asynctee]
 
 import ./streamsbuilder
 
-import std/importutils
-privateAccess(AsyncIoBase)
-privateAccess(AsyncFile)
 
 # Library
 var PR_SET_PDEATHSIG {.importc, header: "<sys/prctl.h>".}: cint
@@ -73,7 +70,7 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     if streamsBuilder.isInteractiveButNoInherit():
         useFakePty = true
         var
-            (master, slave) = newChildTerminalPair()
+            (master, slave) = newPtyPair()#newChildTerminalPair()
             streams: tuple[stdin, stdout, stderr: AsyncIoBase]
             ownedStreams: seq[AsyncIoBase]
             transferWaiters: seq[Future[void]]
@@ -82,13 +79,14 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
             stdFiles.stdin = slave
             stdFiles.stdout = slave
             stdFiles.stderr = slave
-            discard streams.stdin.transfer(master, closeEvent)
+            var fut = streams.stdin.transfer(master, closeEvent)
             transferWaiters.add master.transfer(streams.stdout)
             afterSpawnCleanup = (proc() =
                 slave.close
             )
             afterWaitCleanup = (proc() =
                 closeEvent.complete()
+                waitFor fut
                 master.close()
                 for stream in ownedStreams:
                     stream.close()
@@ -102,16 +100,17 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
             stdFiles.stdin = slave
             stdFiles.stdout = stdoutCapture.writer
             stdFiles.stderr = stderrCapture.writer
-            transferWaiters.add streams.stdin.transfer(master, closeEvent)
+            var fut = streams.stdin.transfer(master, closeEvent)
             transferWaiters.add AsyncTeeReader.new(stdoutCapture.reader, streams.stdout).transfer(slave)
             transferWaiters.add AsyncTeeReader.new(stderrCapture.reader, streams.stderr).transfer(slave) # AsyncIoDelayed.new(slave, 1) ?
-            transferWaiters.add master.transfer(stderrAsync, closeEvent)
+            fut = fut or master.transfer(stderrAsync, closeEvent)
             afterSpawnCleanup = (proc() =
                 stdoutCapture.writer.close()
                 stderrCapture.writer.close()
             )
-            afterWaitCleanup = (proc() =
+            afterWaitCleanup = (proc() {.closure.} =
                 closeEvent.complete()
+                waitFor fut
                 slave.close()
                 master.close()
                 stdoutCapture.reader.close()
