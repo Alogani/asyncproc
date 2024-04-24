@@ -1,8 +1,8 @@
 import std/[os, exitprocs, posix, termios, bitops, options]
 import std/[tables, strutils]
-import asyncio
+import asyncio, asyncio/[asyncpipe, asynctee]
 
-import ./procstream {.all.}
+import ./streamsbuilder
 
 # Library
 var PR_SET_PDEATHSIG {.importc, header: "<sys/prctl.h>".}: cint
@@ -24,17 +24,20 @@ const defaultPassFds = @[
 
 var TermiosBackup: Option[Termios]
 
-proc toChildStream*(streamsBuilder: StreamsBuilder, isInteractive: bool, childWaited: Event): tuple[
+proc toChildStream*(streamsBuilder: StreamsBuilder, childWaited: Event): tuple[
     passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
+    captures: tuple[input, output, outputErr: Future[string]],
+    transfersFinished: Future[void],
     useFakePty: bool,
     afterSpawnCleanup: proc(),
     afterWaitCleanup: proc()
  ]
+proc newPtyPair(): tuple[master, slave: AsyncFile]
 proc newChildTerminalPair(): tuple[master, slave: AsyncFile]
 proc restoreTerminal()
 proc startProcess*(command: string, args: seq[string],
-    passFds = defaultPassFds, env: Table[string, string],
-    workingDir: string = "", daemon = false, fakePty = false): ChildProc
+    passFds = defaultPassFds, env = initTable[string, string](),
+    workingDir = "", daemon = false, fakePty = false): ChildProc
 proc getPid*(p: ChildProc): int
 proc running*(p: var ChildProc): bool
 proc suspend*(p: ChildProc)
@@ -47,53 +50,87 @@ proc envToCStringArray(t: Table[string, string]): cstringArray
 proc readAll(fd: FileHandle): string
 
 
-proc toChildStream*(streamsBuilder: StreamsBuilder, isInteractive: bool, childWaited: Event): tuple[
+proc toChildStream*(streamsBuilder: StreamsBuilder, childWaited: Event): tuple[
     passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
+    captures: tuple[input, output, outputErr: Future[string]],
+    transfersFinished: Future[void],
     useFakePty: bool,
     afterSpawnCleanup: proc(),
     afterWaitCleanup: proc()
  ] =
-    var stdinChild, stdoutChild, stderrChild: AsyncFile
-    var useFakePty = false
-    var afterSpawnCleanup, afterWaitCleanup: proc()
-    if isInteractive and streamsBuilder.stdin != nil and streamsBuilder.stdin != stdinAsync:
+    var
+        stdFiles: tuple[stdin, stdout, stderr: Asyncfile]
+        captures: tuple[input, output, outputErr: Future[string]]
+        transferWaiters: seq[Future[void]]
+        useFakePty = false
+        afterSpawnCleanup: proc()
+        afterWaitCleanup: proc()
+    if streamsBuilder.isInteractiveButNoInherit():
         useFakePty = true
         var (master, slave) = newChildTerminalPair()
-        if streamsBuilder.mergeStderr:
-            stdinChild = slave
-            stdoutChild = slave
-            stderrChild = slave
-            discard streamsBuilder.stdin.transfer(master, childWaited)
-            streamsBuilder.transferWaiters.add master.transfer(streamsBuilder.stdout)
-            streamsBuilder.ownedStreams.add master
-            afterSpawnCleanup = (proc() = slave.close)
-            afterWaitCleanup = (proc() = restoreTerminal())
+        if MergeStderr in streamsBuilder.flags:
+            var streams: tuple[stdin, stdout, stderr: AsyncIoBase]
+            var ownedStreams: seq[AsyncIoBase]
+            var transferWaiters: seq[Future[void]]
+            (streams, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToStreams()
+            stdFiles.stdin = slave
+            stdFiles.stdout = slave
+            stdFiles.stderr = slave
+            discard streams.stdin.transfer(master, childWaited)
+            transferWaiters.add master.transfer(streams.stdout)
+            afterSpawnCleanup = (proc() =
+                slave.close
+            )
+            afterWaitCleanup = (proc() =
+                master.close()
+                for stream in ownedStreams:
+                    stream.close()
+                restoreTerminal()
+            )
         else:
             raise newException(AssertionDefect, "Not implemented yet")
-        #[
-        stdinChild = streams.stdinChild
-        stdoutChild = streams.stdoutChild
-        stderrChild = streams.stderrChild
-        var
-            stdinWriter = streams.stdinWriter
-            stdoutReader = streams.stdoutReader
-            stderrReader = streams.stderrReader
-        closeAfterSpawn.add @[stdinChild, stdoutChild, stderrChild]
-        closeAfterWaited.add @[stdoutReader]
-        discard stdinBuilder.transfer(stdinWriter, waitFinished)
-        outputTransferFinishedList.add stdoutReader.transfer(stdoutBuilder)
-        if stderrReader != nil:
-            outputTransferFinishedList.add stderrReader.transfer(stderrBuilder)
-        ]#
+            #[
+            var stdoutCapture = AsyncPipe.new()
+            var stderrCapture = AsyncPipe.new()
+            stdinChild = slave
+            stdoutChild = stdoutCapture.writer
+            stderrChild = stderrCapture.writer
+            discard streamsBuilder.stdin.transfer(master, childWaited)
+            let stdoutOriginal = streamsBuilder.stdout.popDelayedStdout()
+            if stdoutOriginal != nil:
+                streamsBuilder.stdout.removeDelayedStderr()
+                discard master.transfer(stdoutOriginal)
+            streamsBuilder.transferWaiters.add AsyncTeeReader.new(stdoutCapture.reader, streamsBuilder.stdout).transfer(slave)
+            streamsBuilder.transferWaiters.add AsyncTeeReader.new(stderrCapture.reader, streamsBuilder.stderr).transfer(slave)
+            afterSpawnCleanup = (proc() =
+                stdoutCapture.writer.close()
+                stderrCapture.writer.close()
+            )
+            afterWaitCleanup = (proc() =
+                master.close()
+                slave.close()
+                stdoutCapture.reader.close()
+                stderrCapture.reader.close()
+                restoreTerminal()
+            )
+            ]#
     else:
-        (stdinChild, stdoutChild, stderrChild) = streamsBuilder.toChildFile(childWaited)
+        var ownedStreams: seq[AsyncIoBase]
+        var transferWaiters: seq[Future[void]]
+        (stdFiles, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToChildFile(childWaited)
         afterSpawnCleanup = (proc() =
-            streamsBuilder.closeIfOwned(stdinChild)
-            streamsBuilder.closeIfOwned(stdoutChild)
-            streamsBuilder.closeIfOwned(stderrChild)
+            ownedStreams.closeIfFound(stdFiles.stdin)
+            ownedStreams.closeIfFound(stdFiles.stdout)
+            ownedStreams.closeIfFound(stdFiles.stderr)
+        )
+        afterWaitCleanup = (proc() =
+            for stream in ownedStreams:
+                stream.close()
         )
     return (
-        toPassFds(stdinChild, stdoutChild, stderrChild),
+        toPassFds(stdFiles.stdin, stdFiles.stdout, stdFiles.stderr),
+        captures,
+        (if transferWaiters.len() == 0: nil else: all(transferWaiters)),
         useFakePty,
         afterSpawnCleanup,
         afterWaitCleanup,
@@ -113,7 +150,9 @@ proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
     newParentTermios.c_cc[VMIN] = 1.char
     newParentTermios.c_cc[VTIME] = 0.char
     if tcsetattr(STDIN_FILENO, TCSANOW, addr newParentTermios) == -1: raiseOSError(osLastError())
-    # Create IPC
+    return newPtyPair()
+
+proc newPtyPair(): tuple[master, slave: AsyncFile] =
     var master, slave: cint
     # default termios param shall be ok
     if openpty(master, slave, nil, nil, nil) == -1: raiseOSError(osLastError())
@@ -125,8 +164,8 @@ proc restoreTerminal() =
             raiseOSError(osLastError())
 
 proc startProcess*(command: string, args: seq[string],
-passFds = defaultPassFds, env: Table[string, string],
-workingDir: string = "", daemon = false, fakePty = false): ChildProc =
+passFds = defaultPassFds, env = initTable[string, string](),
+workingDir = "", daemon = false, fakePty = false): ChildProc =
     ##[
         args:
             - args[0] should be the process name. Not providing it result in undefined behaviour

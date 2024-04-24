@@ -4,7 +4,7 @@ import asyncio, asyncio/[asyncpipe]
 import ./procargs {.all.}
 import ./procenv {.all.}
 import ./procresult {.all.}
-import ../private/procstream
+import ../private/streamsbuilder
 
 when defined(windows):
     raise newException(LibraryError)
@@ -21,7 +21,7 @@ type
         onErrorFn: OnErrorFn
         captureStreams: tuple[input, output, outputErr: Future[string]]
         isBeingWaited: Listener
-        outputTransferFinished: Future[void]
+        transfersFinished: Future[void]
         waitFinished: Event
         cleanups: proc()
 
@@ -42,7 +42,6 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
     var
         args = sh.merge(argsModifier)
         cmdBuilt = args.buildCommand(cmd)
-        streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr, MergeStderr in args.options)
         processName = (if args.processName == "": cmdBuilt[0] else: args.processName)
         waitFinished = Event.new()
         env = (
@@ -63,17 +62,17 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         return AsyncProc(childProc: ChildProc(), cmd: cmdBuilt)
     
     #[ Parent stream incluse logic ]#
+    var streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr, MergeStderr in args.options)
     if Interactive in args.options:
-        streamsBuilder.makeInteractive()
-    var stdinCapture, stdoutCapture, stderrCapture: Future[string]
+        streamsBuilder.flags.incl { InteractiveStdin, InteractiveOut }
     if CaptureInput in args.options:
-        stdinCapture = streamsBuilder.captureStdin()
+        streamsBuilder.flags.incl CaptureStdin
     if CaptureOutput in args.options:
-        stdoutCapture = streamsBuilder.captureStdout()
+        streamsBuilder.flags.incl CaptureStdout
     if CaptureOutputErr in args.options and MergeStderr notin args.options:
-        stderrCapture = streamsBuilder.captureStderr()
-    let (passFds, useFakePty , afterSpawnCleanup, afterWaitCleanup) = streamsBuilder.toChildStream(
-        Interactive in args.options, waitFinished)
+        streamsBuilder.flags.incl CaptureStderr
+    let (passFds, captures, transfersFinished, useFakePty, afterSpawnCleanup, afterWaitCleanup) =
+        streamsBuilder.toChildStream(waitFinished)
     let childProc = startProcess(cmdBuilt[0], @[processName] & cmdBuilt[1..^1],
         passFds, env, args.workingDir, Daemon in args.options, fakePty = useFakePty)
     afterSpawnCleanup()
@@ -82,14 +81,11 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         cmd: cmdBuilt,
         logFn: if WithLogging in args.options: args.logFn else: nil,
         onErrorFn: args.onErrorFn,
-        captureStreams: (stdinCapture, stdoutCapture, stderrCapture),
+        captureStreams: captures,
         isBeingWaited: Listener.new(),
-        outputTransferFinished: streamsBuilder.waitForAllTransfers(),
+        transfersFinished: transfersFinished,
         waitFinished: waitFinished,
-        cleanups: proc() {.closure.} =
-            if afterWaitCleanup != nil:
-                afterWaitCleanup()
-            streamsBuilder.closeAllOwnedStreams()
+        cleanups: afterWaitCleanup,
     )
     
 
@@ -107,7 +103,8 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
     let exitCode = self.childProc.wait()
     self.waitFinished.trigger()
     self.cleanups()
-    await self.outputTransferFinished
+    if self.transfersFinished != nil:
+        await self.transfersFinished
     result = ProcResult(
         cmd: self.cmd,
         input:
