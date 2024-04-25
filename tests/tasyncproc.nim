@@ -1,6 +1,6 @@
 import asyncproc
 import asyncio/asyncstream
-import std/[os, sequtils, envvars, strutils]
+import std/[os, sequtils, envvars]
 
 import std/unittest
 
@@ -60,8 +60,7 @@ proc main() {.async.} =
         check (await sh.runGetOutput(@["env"])) == ""
         check (await sh.runGetOutput(@["env"], ProcArgsModifier(env: some {"VAR": "VALUE"}.toTable))) == "VAR=VALUE"
         putEnv("KEY", "VALUE")
-        ## putEnv doesn't have a global effect. But it works when spawning a bash for uknown reason
-        check "KEY=VALUE" notin (await shWithParentEnv.runGetLines(@["env"]))
+        check "KEY=VALUE" in (await shWithParentEnv.runGetLines(@["env"]))
         check getFdCount() == 5
 
     test "with interpreter: Quoted":
@@ -115,14 +114,13 @@ proc main() {.async.} =
         var sh2Merged = sh2.merge(toAdd = { MergeStderr })
 
         var outputStr = (await sh2Merged.run(@["echo Hello"])).output
-        check outputStr == "Hello\r\n"
+        check outputStr == "Hello\13\n"
         check outputStr.withoutLineEnd() == "Hello"
-        ## Not implemented yet
-        #check (await sh2.run(@["echo Hello"])).output == "Hello\n"
-        #stdout.write "Please provide an input: "
-        #var procRes = await sh2.run(@["read a; echo $a"])
-        #check procRes.input == procRes.output
-        #check getFdCount() == 5
+        check (await sh2.run(@["echo Hello"])).output == "Hello\n"
+        stdout.write "Please provide an input: "
+        var procRes = await sh2.run(@["read a; echo $a"])
+        check procRes.input == procRes.output
+        check getFdCount() == 5
     
 
 waitFor main()
