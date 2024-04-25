@@ -95,26 +95,38 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
         else:
             streamsBuilder.flags.excl InteractiveOut
             (streams, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToStreams()
-            var stdoutCapture = AsyncPipe.new()
-            var stderrCapture = AsyncPipe.new()
+            var stdoutCapture: AsyncIoBase
+            if streams.stdout of AsyncPipe:
+                transferWaiters.add streams.stdout.transfer(slave)
+                stdFiles.stdout = AsyncPipe(streams.stdout).writer
+            else:
+                var pipe = AsyncPipe.new()
+                stdFiles.stdout = pipe.writer
+                stdoutCapture = AsyncTeeReader.new(pipe.reader, streams.stdout)
+                ownedStreams.add pipe
+            var stderrCapture: AsyncIoBase
+            if streams.stderr of AsyncPipe:
+                transferWaiters.add streams.stderr.transfer(slave)
+                stdFiles.stdout = AsyncPipe(streams.stderr).writer
+            else:
+                var pipe = AsyncPipe.new()
+                stdFiles.stderr = pipe.writer
+                stderrCapture = AsyncTeeReader.new(pipe.reader, streams.stderr)
+                ownedStreams.add pipe
+            transferWaiters.add stdoutCapture.transfer(slave)
+            transferWaiters.add stderrCapture.transfer(slave)
+
             stdFiles.stdin = slave
-            stdFiles.stdout = stdoutCapture.writer
-            stdFiles.stderr = stderrCapture.writer
-            var fut = streams.stdin.transfer(master, closeEvent)
-            transferWaiters.add AsyncTeeReader.new(stdoutCapture.reader, streams.stdout).transfer(slave)
-            transferWaiters.add AsyncTeeReader.new(stderrCapture.reader, streams.stderr).transfer(slave) # AsyncIoDelayed.new(slave, 1) ?
-            fut = fut or master.transfer(stderrAsync, closeEvent)
+            transferWaiters.add streams.stdin.transfer(master, closeEvent)
+            transferWaiters.add master.transfer(stderrAsync, closeEvent)
             afterSpawnCleanup = (proc() =
-                stdoutCapture.writer.close()
-                stderrCapture.writer.close()
+                ownedStreams.closeIfFound(stdFiles.stdout)
+                ownedStreams.closeIfFound(stdFiles.stderr)
             )
             afterWaitCleanup = (proc() {.closure.} =
                 closeEvent.complete()
-                waitFor fut
                 slave.close()
                 master.close()
-                stdoutCapture.reader.close()
-                stderrCapture.reader.close()
                 for stream in ownedStreams:
                     stream.close()
                 restoreTerminal()
@@ -195,7 +207,6 @@ workingDir = "", daemon = false, fakePty = false): ChildProc =
     var errorPipes: array[2, cint]
     if pipe(errorPipes) != 0'i32:
         raiseOSError(osLastError())
-
     let ppidBeforeFork = getCurrentProcessId()
     let pid = fork()
     if pid == 0'i32: # Child
