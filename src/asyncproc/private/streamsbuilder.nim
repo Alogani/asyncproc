@@ -194,9 +194,11 @@ proc closeIfFound*(ownedStreams: var seq[AsyncIoBase], file: AsyncFile) =
             let pipe = AsyncPipe(stream)
             if pipe.reader == file:
                 pipe.reader.close()
+                ownedStreams2.add pipe.writer
                 continue
             elif pipe.writer == file:
                 pipe.writer.close()
+                ownedStreams2.add pipe.reader
                 continue
         ownedStreams2.add stream
     ownedStreams = ownedStreams2

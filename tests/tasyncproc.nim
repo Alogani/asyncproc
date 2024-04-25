@@ -1,6 +1,6 @@
 import asyncproc
 import asyncio/asyncstream
-import std/envvars
+import std/[os, sequtils, envvars]
 
 import std/unittest
 
@@ -9,6 +9,10 @@ var shWithPrefix = ProcArgs(prefixCmd: @["sh", "-c"], options: { QuoteArgs, Capt
 var shUnquotedWithPrefix = ProcArgs(prefixCmd: @["sh", "-c"], options: { CaptureOutput, CaptureOutputErr })
 var shMergedStderr = shUnquotedWithPrefix.merge(toAdd = { MergeStderr })
 
+let pid = getCurrentProcessId()
+proc getFdCount(): int =
+    toSeq(walkDir("/proc/" & $pid & "/fd", relative=true)).len()
+
 proc main() {.async.} =
     test "Basic IO":
         check (await sh.runCheck(@["true"]))
@@ -16,10 +20,12 @@ proc main() {.async.} =
         check (await sh.runGetOutput(@["echo", "Hello"])) == "Hello"
         check (await sh.runGetOutput(@["echo", "-n", "Hello"])) == "Hello"
         check (await sh.runGetLines(@["echo", "line1\nline2"])) == @["line1", "line2"]
+        check getFdCount() == 5
 
     test "workingDir":
         let workingDir = "/home"
         check (await sh.runGetOutput(@["pwd"], ProcArgsModifier(workingDir: some workingDir))) == workingDir
+        check getFdCount() == 5
 
     test "logFn":
         var loggedVal: string
@@ -29,21 +35,25 @@ proc main() {.async.} =
                 loggedVal = withoutLineEnd res.output
         ))
         check loggedVal == "Hello"
+        check getFdCount() == 5
 
     test "No Output":
         var shNoOutput = ProcArgs(options: { QuoteArgs })
         check not (await shNoOutput.run(@["echo", "Hello"])).success
+        check getFdCount() == 5
 
     test "With Tee output":
         var outStream = AsyncStream.new()
         check (await sh.runGetOutput(@["echo", "Hello"], ProcArgsModifier(output: some (outStream.AsyncIoBase, true)))) == "Hello"
         check (await outStream.readAll()) == "Hello\n"
+        check getFdCount() == 5
 
     test "implicit await":
         var sh2 = sh.deepCopy()
         implicitAwait(@["sh2"]):
             check sh2.runGetOutput(@["echo", "Hello"]) == "Hello"
             check (await sh.runGetOutput(@["echo", "Hello"])) == "Hello"
+        check getFdCount() == 5
 
     test "environment":
         var shWithParentEnv = sh.deepCopy().merge(toAdd = { UseParentEnv })
@@ -51,14 +61,17 @@ proc main() {.async.} =
         check (await sh.runGetOutput(@["env"], ProcArgsModifier(env: some {"VAR": "VALUE"}.toTable))) == "VAR=VALUE"
         putEnv("KEY", "VALUE")
         check "KEY=VALUE" in (await shWithParentEnv.runGetLines(@["env"]))
+        check getFdCount() == 5
 
     test "with interpreter: Quoted":
         check (await shWithPrefix.runGetOutput(@["echo", "Hello"])) == "Hello"
         check not (await shWithPrefix.run(@["echo Hello"])).success
+        check getFdCount() == 5
 
     test "with interpreter: Unquoted":
         check (await shUnquotedWithPrefix.runGetOutput(@["echo", "Hello"])) == "Hello"
         check (await shUnquotedWithPrefix.runGetOutput(@["echo Hello"])) == "Hello"
+        check getFdCount() == 5
 
     test "Stderr":
         check (await shUnquotedWithPrefix.run(@["echo Hello >&2"])).output == ""
@@ -67,6 +80,7 @@ proc main() {.async.} =
         check (await shMergedStderr.run(@["echo Hello"])).output == "Hello\n"
         check (await shMergedStderr.run(@["echo Hello >&2"])).output == "Hello\n"
         check (await shMergedStderr.run(@["echo Hello >&2"])).outputErr == ""        
+        check getFdCount() == 5
 
     test "EnvOnComdline: Quoted":
         # sh add a few env variable
@@ -79,6 +93,7 @@ proc main() {.async.} =
             env: some {"VAR": "VALUE SPACED"}.toTable,
             toAdd: { SetEnvOnCmdLine }
         )))
+        check getFdCount() == 5
         
     test "EnvOnComdline: Unquoted":
         # sh add a few env variable
@@ -91,6 +106,7 @@ proc main() {.async.} =
             env: some {"VAR": "VALUE SPACED"}.toTable,
             toAdd: { SetEnvOnCmdLine }
         )))
+        check getFdCount() == 5
 
     ## Commented out = Work in progress
     test "Interactive":
@@ -104,6 +120,7 @@ proc main() {.async.} =
         stdout.write "Please provide an input: "
         var procRes = await sh2.run(@["read a; echo $a"])
         check procRes.input == procRes.output
+        check getFdCount() == 5
     
 
 waitFor main()
