@@ -1,9 +1,10 @@
-import std/[options, strutils, deques]
-import asyncio, asyncio/[asyncpipe, asyncstream, asynchainreader, asynctee, asynciodelayed]
+import std/[options, strutils]
+import asyncio, asyncio/[asyncpipe]
 
 import ./procargs {.all.}
 import ./procenv {.all.}
 import ./procresult {.all.}
+import ../private/streamsbuilder
 
 when defined(windows):
     raise newException(LibraryError)
@@ -20,8 +21,7 @@ type
         onErrorFn: OnErrorFn
         captureStreams: tuple[input, output, outputErr: Future[string]]
         isBeingWaited: Listener
-        outputTransferFinished: Future[void]
-        waitFinished: Event
+        transfersFinished: Future[void]
         cleanups: proc()
 
 #[
@@ -29,8 +29,7 @@ Used when both Interactive is set and MergeStderr is not set, otherwise:
     - stdout can appear before stdin has issued a newline
     - prompt (stderr) can appear before command output
 ]#
-let delayedStdoutAsync = AsyncIoDelayed.new(stderrAsync, 1)
-let delayedStderrAsync = AsyncIoDelayed.new(stderrAsync, 2)
+
 
 proc askYesNo(sh: ProcArgs, text: string): bool
 
@@ -41,15 +40,8 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         raise newException(ExecError, "Can't run an empty command")
     var
         args = sh.merge(argsModifier)
-        (stdinBuilder, stdoutBuilder, stderrBuilder) =
-            (args.input.stream, args.output.stream, args.outputErr.stream)
         cmdBuilt = args.buildCommand(cmd)
         processName = (if args.processName == "": cmdBuilt[0] else: args.processName)
-        closeAfterSpawn: seq[AsyncFile]
-        closeAfterOutTransfer: seq[AsyncIoBase]
-        closeAfterWaited: seq[AsyncIoBase]
-        outputTransferFinishedList: seq[Future[void]]
-        waitFinished = Event.new()
         env = (
             if SetEnvOnCmdLine in args.options:
                 newEmptyEnv()
@@ -58,24 +50,6 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
             else:
                 args.env
             )
-    block closeWhenOver:
-        if args.input.closeWhenOver:
-            if args.input.stream of AsyncFile:
-                closeAfterSpawn.add AsyncFile(args.input.stream)
-            elif args.input.stream of AsyncPipe:
-                closeAfterSpawn.add AsyncPipe(args.input.stream).reader
-                closeAfterWaited.add AsyncPipe(args.input.stream).writer
-            else:
-                closeAfterWaited.add args.input.stream
-        for (stream, closeWhenOver)in @[(args.output.stream, args.output.closeWhenOver), (args.outputErr.stream, args.outputErr.closeWhenOver)]:
-            if closeWhenOver:
-                if stream of AsyncFile:
-                    closeAfterSpawn.add AsyncFile(stream)
-                elif args.input.stream of AsyncPipe:
-                    closeAfterSpawn.add AsyncPipe(stream).writer
-                    closeAfterWaited.add AsyncPipe(stream).reader
-                else:
-                    closeAfterWaited.add stream
     if AskConfirmation in args.options:
         if not sh.askYesNo("You are about to run following command:\n" &
                             ">>> " & $cmdBuilt & "\nDo you confirm ?"):
@@ -84,141 +58,33 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         echo ">>> ", cmdBuilt
     if DryRun in args.options:
         return AsyncProc(childProc: ChildProc(), cmd: cmdBuilt)
+    
     #[ Parent stream incluse logic ]#
+    var streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr, MergeStderr in args.options)
     if Interactive in args.options:
-        block stdin:
-            if stdinBuilder == nil or stdinBuilder == stdinAsync:
-                stdinBuilder = stdinAsync
-            elif stdinBuilder of AsyncChainReader:
-                AsyncChainReader(stdinBuilder).readers.addLast stdinAsync
-            else:
-                stdinBuilder = AsyncChainReader.new(stdinBuilder, stdinAsync)
-        proc updateOutBuilder(builder: var AsyncIoBase, stdStream, stdStreamDelayed: AsyncIoBase) =
-            if builder == nil:
-                builder = stdStreamDelayed
-            elif builder == stdStream:
-                discard
-            elif builder of AsyncTeeWriter:
-                AsyncTeeWriter(builder).writers.add(stdStreamDelayed)
-            else:
-                builder = AsyncTeeWriter.new(builder, stdStreamDelayed)
-        if MergeStderr in args.options:
-            stdoutBuilder.updateOutBuilder(stdoutAsync, delayedStdoutAsync)
-            stderrBuilder.updateOutBuilder(stderrAsync, delayedStderrAsync)
-        else:
-            stdoutBuilder.updateOutBuilder(stdoutAsync, stdoutAsync)
-            stderrBuilder = nil
-    #[ Capture logic ]#
-    # if capture is a asyncpipe, must not be read lazy to avoid child IO deadlock
-    # if capture is a asyncstream, no point to make it lazy (already takes memory)
-    var stdinCapture, stdoutCapture, stderrCapture: Future[string]
-    block captures:
-        block stdin:
-            if CaptureInput in args.options and stdinBuilder != nil:
-                let captureIo = AsyncStream.new()
-                stdinBuilder = AsyncTeeReader.new(stdinBuilder, captureIo)
-                closeAfterOutTransfer.add captureIo
-                stdinCapture = captureIo.readAll()
-        proc getOutCapture(builder: var AsyncIoBase): Future[string] {.closure.} =
-            if builder != nil:
-                let captureIo = AsyncStream.new()
-                if builder of AsyncTeeWriter:
-                    AsyncTeeWriter(builder).writers.add(captureIo)
-                else:
-                    builder = AsyncTeeWriter.new(builder, captureIo)
-                closeAfterOutTransfer.add captureIo
-                return captureIo.readAll()
-            else:
-                var pipe = AsyncPipe.new()
-                builder = pipe.writer
-                closeAfterSpawn.add pipe.writer
-                closeAfterWaited.add pipe.reader
-                return pipe.reader.readAll()
-        if CaptureOutput in args.options:
-            stdoutCapture = getOutCapture(stdoutBuilder)
-        if CaptureOutputErr in args.options and MergeStderr notin args.options:
-            stderrCapture = getOutCapture(stderrBuilder)
-    #[ Set up child's stdin, stdout and stderr ]#
-    var stdinChild, stdoutChild, stderrChild: AsyncFile
-    var useFakePty: bool
-    if Interactive in args.options and stdinBuilder != nil and stdinBuilder != stdinAsync:
-        ## Mandatory to create a fake terminal
-        useFakePty = true
-        var streams = newChildTerminal(MergeStderr in args.options)
-        stdinChild = streams.stdinChild
-        stdoutChild = streams.stdoutChild
-        stderrChild = streams.stderrChild
-        var
-            stdinWriter = streams.stdinWriter
-            stdoutReader = streams.stdoutReader
-            stderrReader = streams.stderrReader
-        closeAfterSpawn.add @[stdinChild, stdoutChild, stderrChild]
-        closeAfterWaited.add @[stdoutReader]
-        discard stdinBuilder.transfer(stdinWriter, waitFinished)
-        outputTransferFinishedList.add stdoutReader.transfer(stdoutBuilder)
-        if stderrReader != nil:
-            outputTransferFinishedList.add stderrReader.transfer(stderrBuilder)
-    else:
-        stdinChild = (
-            if stdinBuilder == nil:
-                nil
-            elif stdinBuilder of AsyncPipe:
-                AsyncPipe(stdinBuilder).reader
-            elif stdinBuilder of AsyncFile:
-                AsyncFile(stdinBuilder)
-            else:
-                var pipe = AsyncPipe.new()
-                discard stdinBuilder.transfer(pipe.writer, waitFinished)
-                closeAfterSpawn.add pipe.reader
-                closeAfterWaited.add pipe.writer
-                pipe.reader
-        )
-        proc initOutChild(child: var AsyncFile, builder: AsyncIoBase) {.closure.} =
-            if builder == nil:
-                child = nil
-            elif builder of AsyncFile:
-                child = AsyncFile(builder)
-            elif builder of AsyncPipe:
-                child = AsyncPipe(builder).writer
-            else:
-                var pipe = AsyncPipe.new()
-                outputTransferFinishedList.add pipe.reader.transfer(builder)
-                closeAfterSpawn.add pipe.writer
-                closeAfterWaited.add pipe.reader
-                child = pipe.writer
-        stdoutChild.initOutChild(stdoutBuilder)
-        if MergeStderr in args.options:
-            stderrChild = stdoutChild
-        else:
-            stderrChild.initOutChild(stderrBuilder)
-    var passFds = newSeq[tuple[src: FileHandle, dest: FileHandle]]()
-    if stdinChild != nil: passFds.add (FileHandle(stdinChild.fd), Filehandle(0))
-    if stdoutChild != nil: passFds.add (FileHandle(stdoutChild.fd), FileHandle(1))
-    if stderrChild != nil: passFds.add (FileHandle(stderrChild.fd), FileHandle(2))
+        streamsBuilder.flags.incl { InteractiveStdin, InteractiveOut }
+    if CaptureInput in args.options:
+        streamsBuilder.flags.incl CaptureStdin
+    if CaptureOutput in args.options:
+        streamsBuilder.flags.incl CaptureStdout
+    if CaptureOutputErr in args.options and MergeStderr notin args.options:
+        streamsBuilder.flags.incl CaptureStderr
+    let (passFds, captures, transfersFinished, useFakePty, afterSpawnCleanup, afterWaitCleanup) =
+        streamsBuilder.toChildStream()
     let childProc = startProcess(cmdBuilt[0], @[processName] & cmdBuilt[1..^1],
         passFds, env, args.workingDir, Daemon in args.options, fakePty = useFakePty)
-    var outputTransferFinished = all(outputTransferFinishedList)
+    afterSpawnCleanup()
     result = AsyncProc(
         childProc: childProc,
         cmd: cmdBuilt,
         logFn: if WithLogging in args.options: args.logFn else: nil,
         onErrorFn: args.onErrorFn,
-        captureStreams: (stdinCapture, stdoutCapture, stderrCapture),
+        captureStreams: captures,
         isBeingWaited: Listener.new(),
-        outputTransferFinished: outputTransferFinished,
-        waitFinished: waitFinished,
-        cleanups: proc() {.closure.} =
-            if useFakePty:
-                restoreTerminal()
-            for stream in closeAfterWaited:
-                stream.close()
+        transfersFinished: transfersFinished,
+        cleanups: afterWaitCleanup,
     )
-    for fileStream in closeAfterSpawn:
-        fileStream.close()
-    outputTransferFinished.addCallback(proc () =
-        for stream in closeAfterOutTransfer:
-            stream.close()
-    )
+    
 
 proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
     ## Raise error if cancelFut is triggered
@@ -232,7 +98,9 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
         if not self.isBeingWaited.isTriggered():
             raise newException(OsError, "Timeout expired")
     let exitCode = self.childProc.wait()
-    await self.outputTransferFinished
+    self.cleanups()
+    if self.transfersFinished != nil:
+        await self.transfersFinished
     result = ProcResult(
         cmd: self.cmd,
         input:
@@ -253,8 +121,6 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
         exitCode: exitCode,
         success: exitCode == 0,
     )
-    self.waitFinished.trigger()
-    self.cleanups()
     result.setOnErrorFn(self.onErrorFn)
     if self.logFn != nil:
         self.logFn(result)

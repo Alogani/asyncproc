@@ -1,6 +1,9 @@
 import std/[os, exitprocs, posix, termios, bitops, options]
 import std/[tables, strutils]
-import asyncio
+import asyncio, asyncio/[asyncpipe, asynctee]
+
+import ./streamsbuilder
+
 
 # Library
 var PR_SET_PDEATHSIG {.importc, header: "<sys/prctl.h>".}: cint
@@ -20,16 +23,22 @@ const defaultPassFds = @[
     (src: FileHandle(2), dest: FileHandle(2)),
 ]
 
-
 var TermiosBackup: Option[Termios]
 
-proc newChildTerminal*(mergeStderr: bool): tuple[
-    stdinChild: AsyncFile, stdoutChild: AsyncFile, stderrChild: AsyncFile,
-    stdinWriter: AsyncIoBase, stdoutReader: AsyncIoBase, stderrReader: AsyncIoBase, ]
-proc restoreTerminal*()
+proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
+    passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
+    captures: tuple[input, output, outputErr: Future[string]],
+    transfersFinished: Future[void],
+    useFakePty: bool,
+    afterSpawnCleanup: proc(),
+    afterWaitCleanup: proc()
+ ]
+proc newPtyPair(): tuple[master, slave: AsyncFile]
+proc newChildTerminalPair(): tuple[master, slave: AsyncFile]
+proc restoreTerminal()
 proc startProcess*(command: string, args: seq[string],
-    passFds = defaultPassFds, env: Table[string, string],
-    workingDir: string = "", daemon = false, fakePty = false): ChildProc
+    passFds = defaultPassFds, env = initTable[string, string](),
+    workingDir = "", daemon = false, fakePty = false): ChildProc
 proc getPid*(p: ChildProc): int
 proc running*(p: var ChildProc): bool
 proc suspend*(p: ChildProc)
@@ -41,21 +50,115 @@ proc waitImpl(p: var ChildProc, hang: bool)
 proc envToCStringArray(t: Table[string, string]): cstringArray
 proc readAll(fd: FileHandle): string
 
-proc newChildTerminal*(mergeStderr: bool): tuple[
-    stdinChild, stdoutChild, stderrChild: AsyncFile,
-    stdinWriter, stdoutReader, stderrReader: AsyncIoBase,
-] =
-    ## Abstraction to help bridge the gap between low-level os dependent code and high level one
-    ## Side effect: make parent's terminal raw (so unusable interactivly -> use restoreTerminal)
-    ##      -> so unusable interactvly
-    ##      -> unless restoreTerminal() is called (automatically called when main program quit with addExitProc)
-    ## not MergingStderr require opening two more file descriptors, more processing, and might not be as reliable
+
+proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
+    passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
+    captures: tuple[input, output, outputErr: Future[string]],
+    transfersFinished: Future[void],
+    useFakePty: bool,
+    afterSpawnCleanup: proc(),
+    afterWaitCleanup: proc()
+ ] =
+    var
+        stdFiles: tuple[stdin, stdout, stderr: Asyncfile]
+        captures: tuple[input, output, outputErr: Future[string]]
+        transferWaiters: seq[Future[void]]
+        useFakePty = false
+        afterSpawnCleanup: proc()
+        afterWaitCleanup: proc()
+        closeEvent = newFuture[void]()
+    if streamsBuilder.isInteractiveButNoInherit():
+        useFakePty = true
+        var
+            (master, slave) = newChildTerminalPair()
+            streams: tuple[stdin, stdout, stderr: AsyncIoBase]
+            ownedStreams: seq[AsyncIoBase]
+            transferWaiters: seq[Future[void]]
+        if MergeStderr in streamsBuilder.flags:
+            (streams, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToStreams()
+            stdFiles.stdin = slave
+            stdFiles.stdout = slave
+            stdFiles.stderr = slave
+            var fut = streams.stdin.transfer(master, closeEvent)
+            transferWaiters.add master.transfer(streams.stdout)
+            afterSpawnCleanup = (proc() =
+                slave.close
+            )
+            afterWaitCleanup = (proc() =
+                closeEvent.complete()
+                waitFor fut
+                master.close()
+                for stream in ownedStreams:
+                    stream.close()
+                restoreTerminal()
+            )
+        else:
+            streamsBuilder.flags.excl InteractiveOut
+            (streams, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToStreams()
+            var stdoutCapture: AsyncIoBase
+            if streams.stdout of AsyncPipe:
+                transferWaiters.add streams.stdout.transfer(slave)
+                stdFiles.stdout = AsyncPipe(streams.stdout).writer
+            else:
+                var pipe = AsyncPipe.new()
+                stdFiles.stdout = pipe.writer
+                stdoutCapture = AsyncTeeReader.new(pipe.reader, streams.stdout)
+                ownedStreams.add pipe
+            var stderrCapture: AsyncIoBase
+            if streams.stderr of AsyncPipe:
+                transferWaiters.add streams.stderr.transfer(slave)
+                stdFiles.stdout = AsyncPipe(streams.stderr).writer
+            else:
+                var pipe = AsyncPipe.new()
+                stdFiles.stderr = pipe.writer
+                stderrCapture = AsyncTeeReader.new(pipe.reader, streams.stderr)
+                ownedStreams.add pipe
+            transferWaiters.add stdoutCapture.transfer(slave)
+            transferWaiters.add stderrCapture.transfer(slave)
+
+            stdFiles.stdin = slave
+            transferWaiters.add streams.stdin.transfer(master, closeEvent)
+            transferWaiters.add master.transfer(stderrAsync, closeEvent)
+            afterSpawnCleanup = (proc() =
+                ownedStreams.closeIfFound(stdFiles.stdout)
+                ownedStreams.closeIfFound(stdFiles.stderr)
+            )
+            afterWaitCleanup = (proc() {.closure.} =
+                closeEvent.complete()
+                slave.close()
+                master.close()
+                for stream in ownedStreams:
+                    stream.close()
+                restoreTerminal()
+            )
+    else:
+        var ownedStreams: seq[AsyncIoBase]
+        var transferWaiters: seq[Future[void]]
+        (stdFiles, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToChildFile(closeEvent)
+        afterSpawnCleanup = (proc() =
+            ownedStreams.closeIfFound(stdFiles.stdin)
+            ownedStreams.closeIfFound(stdFiles.stdout)
+            ownedStreams.closeIfFound(stdFiles.stderr)
+        )
+        afterWaitCleanup = (proc() =
+            closeEvent.complete()
+            for stream in ownedStreams:
+                stream.close()
+        )
+    return (
+        toPassFds(stdFiles.stdin, stdFiles.stdout, stdFiles.stderr),
+        captures,
+        (if transferWaiters.len() == 0: nil else: all(transferWaiters)),
+        useFakePty,
+        afterSpawnCleanup,
+        afterWaitCleanup,
+    )
+
+proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
     if TermiosBackup.isNone():
         TermiosBackup = some Termios()
         if tcGetAttr(STDIN_FILENO, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
-        addExitProc(proc() =
-            if tcsetattr(0, TCSANOW, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
-        )        
+        addExitProc(proc() = restoreTerminal())        
     var newParentTermios: Termios
     # Make the parent raw
     newParentTermios = TermiosBackup.get()
@@ -65,26 +168,22 @@ proc newChildTerminal*(mergeStderr: bool): tuple[
     newParentTermios.c_cc[VMIN] = 1.char
     newParentTermios.c_cc[VTIME] = 0.char
     if tcsetattr(STDIN_FILENO, TCSANOW, addr newParentTermios) == -1: raiseOSError(osLastError())
-    # Create IPC
+    return newPtyPair()
+
+proc newPtyPair(): tuple[master, slave: AsyncFile] =
     var master, slave: cint
     # default termios param shall be ok
     if openpty(master, slave, nil, nil, nil) == -1: raiseOSError(osLastError())
-    let
-        masterIo = AsyncFile.new(master)
-        slaveIo = AsyncFile.new(slave)
-    if mergeStderr:
-        # Classical way terminal works, should work 100% as intended
-        return (slaveIo, slaveIo, slaveIo, masterIo, masterIo, nil)
-    else:
-        raise newException(AssertionDefect, "Not implemnted yet")
-    
-proc restoreTerminal*() =
+    return (AsyncFile.new(master), AsyncFile.new(slave))
+
+proc restoreTerminal() =
     if TermiosBackup.isSome():
-        if tcsetattr(STDIN_FILENO, TCSANOW, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
+        if tcsetattr(STDIN_FILENO, TCSANOW, addr TermiosBackup.get()) == -1:
+            raiseOSError(osLastError())
 
 proc startProcess*(command: string, args: seq[string],
-passFds = defaultPassFds, env: Table[string, string],
-workingDir: string = "", daemon = false, fakePty = false): ChildProc =
+passFds = defaultPassFds, env = initTable[string, string](),
+workingDir = "", daemon = false, fakePty = false): ChildProc =
     ##[
         args:
             - args[0] should be the process name. Not providing it result in undefined behaviour
@@ -108,7 +207,6 @@ workingDir: string = "", daemon = false, fakePty = false): ChildProc =
     var errorPipes: array[2, cint]
     if pipe(errorPipes) != 0'i32:
         raiseOSError(osLastError())
-
     let ppidBeforeFork = getCurrentProcessId()
     let pid = fork()
     if pid == 0'i32: # Child
