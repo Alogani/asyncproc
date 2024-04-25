@@ -212,4 +212,4 @@ proc toPassFds*(stdin, stdout, stderr: AsyncFile): seq[tuple[src: FileHandle, de
         result.add (stderr.fd, 2.FileHandle)
 
 proc isInteractiveButNoInherit*(builder: StreamsBuilder): bool =
-    InteractiveStdin in builder.flags and (builder.stdin == nil or builder.stdin == stdinAsync)
+    InteractiveStdin in builder.flags and (builder.stdin != nil or builder.stdin != stdinAsync)

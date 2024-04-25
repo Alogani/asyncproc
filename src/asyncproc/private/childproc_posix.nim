@@ -93,6 +93,8 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                 restoreTerminal()
             )
         else:
+            raise newException(AssertionDefect, "Not implemented yet")
+            #[
             streamsBuilder.flags.excl InteractiveOut
             (streams, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToStreams()
             var stdoutCapture: AsyncIoBase
@@ -131,6 +133,7 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                     stream.close()
                 restoreTerminal()
             )
+            ]#
     else:
         var ownedStreams: seq[AsyncIoBase]
         var transferWaiters: seq[Future[void]]
