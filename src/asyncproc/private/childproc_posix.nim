@@ -70,7 +70,7 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     if streamsBuilder.isInteractiveButNoInherit():
         useFakePty = true
         var
-            (master, slave) = newPtyPair()#newChildTerminalPair()
+            (master, slave) = newChildTerminalPair()
             streams: tuple[stdin, stdout, stderr: AsyncIoBase]
             ownedStreams: seq[AsyncIoBase]
             transferWaiters: seq[Future[void]]
