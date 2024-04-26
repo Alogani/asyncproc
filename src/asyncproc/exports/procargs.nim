@@ -17,7 +17,7 @@ type
         CaptureOutput, CaptureOutputErr, CaptureInput,
         UseParentEnv, Daemon, DryRun,
         ShowCommand, AskConfirmation, WithLogging,
-        SetEnvOnCmdLine,
+        SetEnvOnCmdLine
         #[
             Interactive:
                 - First: parent's streams will be added to input/output/outputErr of child
@@ -45,8 +45,6 @@ type
                 - Instead of giving childProc an environment, it will be given an empty environment
                 - And env will be put on commandline. Exemple: @["ssh", "user@localhost", "export MYVAR=MYVAL MYVAR2=MYVAL2; command"]
         ]#
-
-    StreamArg* = tuple[stream: AsyncIoBase, closeWhenOver: bool]
     
 const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, CaptureOutputErr, UseParentEnv }
 
@@ -59,9 +57,9 @@ type
         processName* = ""
         logFn*: LogFn
         onErrorFn*: OnErrorFn
-        input*: StreamArg = (nil, false)
-        output*: StreamArg = (nil, false)
-        outputErr*: StreamArg = (nil, false)
+        input*: AsyncIoBase
+        output*: AsyncIoBase
+        outputErr*: AsyncIoBase
         #[
             prefixCmd: command that is put before the actual command being run. Must be capable of evaluating a command, like:
                 - @["sh", "-c"]
@@ -87,9 +85,9 @@ type
         prefixCmd*: Option[seq[string]]
         toAdd*: set[ProcOption]
         toRemove*: set[ProcOption]
-        input*: Option[StreamArg]
-        output*: Option[StreamArg]
-        outputErr*: Option[StreamArg]
+        input*: Option[AsyncIoBase]
+        output*: Option[AsyncIoBase]
+        outputErr*: Option[AsyncIoBase]
         env*: Option[ProcEnv]
         ## envModifier don't replace the original one, but is merged with it
         envModifier*: Option[ProcEnv]
@@ -177,9 +175,9 @@ proc merge*[T: ProcArgs or ProcArgsModifier](a: T,
             prefixCmd = none(seq[string]),
             toAdd: set[ProcOption] = {},
             toRemove: set[ProcOption] = {},
-            input = none(StreamArg),
-            output = none(StreamArg),
-            outputErr = none(StreamArg),
+            input = none(AsyncIoBase),
+            output = none(AsyncIoBase),
+            outputErr = none(AsyncIoBase),
             env = none(ProcEnv),
             envModifier = none(ProcEnv),
             workingDir = none(string),

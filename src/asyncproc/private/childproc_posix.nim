@@ -28,7 +28,6 @@ var TermiosBackup: Option[Termios]
 proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
     captures: tuple[input, output, outputErr: Future[string]],
-    transfersFinished: Future[void],
     useFakePty: bool,
     afterSpawnCleanup: proc(),
     afterWaitCleanup: proc()
@@ -54,7 +53,6 @@ proc readAll(fd: FileHandle): string
 proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
     captures: tuple[input, output, outputErr: Future[string]],
-    transfersFinished: Future[void],
     useFakePty: bool,
     afterSpawnCleanup: proc(),
     afterWaitCleanup: proc()
@@ -62,8 +60,9 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     var
         stdFiles: tuple[stdin, stdout, stderr: Asyncfile]
         captures: tuple[input, output, outputErr: Future[string]]
-        transferWaiters: seq[Future[void]]
         useFakePty = false
+        toClose: seq[AsyncIoBase]
+        toCloseWhenFlushed: seq[AsyncIoBase]
         afterSpawnCleanup: proc()
         afterWaitCleanup: proc()
         closeEvent = newFuture[void]()
@@ -72,23 +71,22 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
         var
             (master, slave) = newChildTerminalPair()
             streams: tuple[stdin, stdout, stderr: AsyncIoBase]
-            ownedStreams: seq[AsyncIoBase]
-            transferWaiters: seq[Future[void]]
         if MergeStderr in streamsBuilder.flags:
-            (streams, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToStreams()
+            (streams, captures, toClose, toCloseWhenFlushed) = streamsBuilder.buildToStreams()
             stdFiles.stdin = slave
             stdFiles.stdout = slave
             stdFiles.stderr = slave
-            var fut = streams.stdin.transfer(master, closeEvent)
-            transferWaiters.add master.transfer(streams.stdout)
+            discard streams.stdin.transfer(master, closeEvent)
+            discard master.transfer(streams.stdout)
             afterSpawnCleanup = (proc() =
                 slave.close
             )
             afterWaitCleanup = (proc() =
                 closeEvent.complete()
-                waitFor fut
-                master.close()
-                for stream in ownedStreams:
+                master.closeWhenFlushed()
+                for stream in toCloseWhenFlushed:
+                    stream.closeWhenFlushed()
+                for stream in toClose:
                     stream.close()
                 restoreTerminal()
             )
@@ -130,28 +128,27 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                 slave.close()
                 master.close()
                 for stream in ownedStreams:
-                    stream.close()
+                    stream.closeWhenFlushed()
                 restoreTerminal()
             )
             ]#
     else:
-        var ownedStreams: seq[AsyncIoBase]
-        var transferWaiters: seq[Future[void]]
-        (stdFiles, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToChildFile(closeEvent)
+        (stdFiles, captures, toClose, toCloseWhenFlushed) = streamsBuilder.buildToChildFile(closeEvent)
         afterSpawnCleanup = (proc() =
-            ownedStreams.closeIfFound(stdFiles.stdin)
-            ownedStreams.closeIfFound(stdFiles.stdout)
-            ownedStreams.closeIfFound(stdFiles.stderr)
+            if stdFiles.stdin != nil: stdFiles.stdin.close()
+            if stdFiles.stdout != nil: stdFiles.stdout.close()
+            if stdFiles.stderr != nil: stdFiles.stderr.close()
         )
         afterWaitCleanup = (proc() =
             closeEvent.complete()
-            for stream in ownedStreams:
+            for stream in toCloseWhenFlushed:
+                stream.closeWhenFlushed()
+            for stream in toClose:
                 stream.close()
         )
     return (
         toPassFds(stdFiles.stdin, stdFiles.stdout, stdFiles.stderr),
         captures,
-        (if transferWaiters.len() == 0: nil else: all(transferWaiters)),
         useFakePty,
         afterSpawnCleanup,
         afterWaitCleanup,
