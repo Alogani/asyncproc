@@ -44,7 +44,7 @@ proc main() {.async.} =
 
     test "With Tee output":
         var outStream = AsyncStream.new()
-        check (await sh.runGetOutput(@["echo", "Hello"], ProcArgsModifier(output: some (outStream.AsyncIoBase, true)))) == "Hello"
+        check (await sh.runGetOutput(@["echo", "Hello"], ProcArgsModifier(output: some outStream.AsyncIoBase))) == "Hello"
         check (await outStream.readAll()) == "Hello\n"
         check getFdCount() == 5
 
@@ -60,8 +60,7 @@ proc main() {.async.} =
         check (await sh.runGetOutput(@["env"])) == ""
         check (await sh.runGetOutput(@["env"], ProcArgsModifier(env: some {"VAR": "VALUE"}.toTable))) == "VAR=VALUE"
         putEnv("KEY", "VALUE")
-        ## putEnv doesn't have a global effect. But it works when spawning a bash for uknown reason
-        check "KEY=VALUE" notin (await shWithParentEnv.runGetLines(@["env"]))
+        check "KEY=VALUE" in (await shWithParentEnv.runGetLines(@["env"]))
         check getFdCount() == 5
 
     test "with interpreter: Quoted":

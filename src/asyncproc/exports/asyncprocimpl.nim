@@ -21,7 +21,6 @@ type
         onErrorFn: OnErrorFn
         captureStreams: tuple[input, output, outputErr: Future[string]]
         isBeingWaited: Listener
-        transfersFinished: Future[void]
         cleanups: proc()
 
 #[
@@ -69,7 +68,7 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         streamsBuilder.flags.incl CaptureStdout
     if CaptureOutputErr in args.options and MergeStderr notin args.options:
         streamsBuilder.flags.incl CaptureStderr
-    let (passFds, captures, transfersFinished, useFakePty, afterSpawnCleanup, afterWaitCleanup) =
+    let (passFds, captures, useFakePty, afterSpawnCleanup, afterWaitCleanup) =
         streamsBuilder.toChildStream()
     let childProc = startProcess(cmdBuilt[0], @[processName] & cmdBuilt[1..^1],
         passFds, env, args.workingDir, Daemon in args.options, fakePty = useFakePty)
@@ -81,7 +80,6 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         onErrorFn: args.onErrorFn,
         captureStreams: captures,
         isBeingWaited: Listener.new(),
-        transfersFinished: transfersFinished,
         cleanups: afterWaitCleanup,
     )
     
@@ -99,8 +97,6 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
             raise newException(OsError, "Timeout expired")
     let exitCode = self.childProc.wait()
     self.cleanups()
-    if self.transfersFinished != nil:
-        await self.transfersFinished
     result = ProcResult(
         cmd: self.cmd,
         input:
@@ -195,7 +191,7 @@ cancelFut: Future[void] = nil): (AsyncIoBase, Future[void]) =
                 else:
                     { MergeStderr, Interactive, CaptureOutput, CaptureInput }
                 ),
-            output = some (pipe.AsyncIoBase, true)
+            output = some pipe.AsyncIoBase
     ), cancelFut)
     return (pipe.reader, finishFut)
 
@@ -212,8 +208,8 @@ cancelFut: Future[void] = nil): (AsyncIoBase, AsyncIoBase, Future[void]) =
                 else:
                     { MergeStderr, Interactive, CaptureOutput, CaptureInput }
                 ),
-            output = some (outputPipe.AsyncIoBase, true),
-            outputErr = some (outputErrPipe.AsyncIoBase, true)
+            output = some outputPipe.AsyncIoBase,
+            outputErr = some outputErrPipe.AsyncIoBase
     ), cancelFut)
     return (outputPipe.reader, outputErrPipe.reader, finishFut)
 
