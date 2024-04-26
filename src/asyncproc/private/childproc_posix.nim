@@ -91,47 +91,47 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                 restoreTerminal()
             )
         else:
-            raise newException(AssertionDefect, "Not implemented yet")
-            #[
             streamsBuilder.flags.excl InteractiveOut
-            (streams, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToStreams()
+            (streams, captures, toClose, toCloseWhenFlushed) = streamsBuilder.buildToStreams()
             var stdoutCapture: AsyncIoBase
-            if streams.stdout of AsyncPipe:
-                transferWaiters.add streams.stdout.transfer(slave)
+            if false: #streams.stdout of AsyncPipe:
+                # Doesn't make much sense
+                stdoutCapture = AsyncPipe(streams.stdout).reader
                 stdFiles.stdout = AsyncPipe(streams.stdout).writer
             else:
                 var pipe = AsyncPipe.new()
-                stdFiles.stdout = pipe.writer
                 stdoutCapture = AsyncTeeReader.new(pipe.reader, streams.stdout)
-                ownedStreams.add pipe
+                stdFiles.stdout = pipe.writer
             var stderrCapture: AsyncIoBase
-            if streams.stderr of AsyncPipe:
-                transferWaiters.add streams.stderr.transfer(slave)
-                stdFiles.stdout = AsyncPipe(streams.stderr).writer
+            if false: #streams.stderr of AsyncPipe:
+                stderrCapture = AsyncPipe(streams.stderr).reader
+                stdFiles.stderr = AsyncPipe(streams.stderr).writer
             else:
                 var pipe = AsyncPipe.new()
-                stdFiles.stderr = pipe.writer
                 stderrCapture = AsyncTeeReader.new(pipe.reader, streams.stderr)
-                ownedStreams.add pipe
-            transferWaiters.add stdoutCapture.transfer(slave)
-            transferWaiters.add stderrCapture.transfer(slave)
+                stdFiles.stderr = pipe.writer
+            toCloseWhenFlushed.add stdoutCapture
+            toCloseWhenFlushed.add stderrCapture
+            discard stdoutCapture.transfer(slave)
+            discard stderrCapture.transfer(slave)
 
             stdFiles.stdin = slave
-            transferWaiters.add streams.stdin.transfer(master, closeEvent)
-            transferWaiters.add master.transfer(stderrAsync, closeEvent)
+            discard streams.stdin.transfer(master, closeEvent)
+            discard master.transfer(stderrAsync, closeEvent)
             afterSpawnCleanup = (proc() =
-                ownedStreams.closeIfFound(stdFiles.stdout)
-                ownedStreams.closeIfFound(stdFiles.stderr)
+                stdFiles.stdout.close()
+                stdFiles.stderr.close()
             )
             afterWaitCleanup = (proc() {.closure.} =
+                slave.closeWhenFlushed()
+                master.closeWhenFlushed()
                 closeEvent.complete()
-                slave.close()
-                master.close()
-                for stream in ownedStreams:
+                for stream in toCloseWhenFlushed:
                     stream.closeWhenFlushed()
+                for stream in toClose:
+                    stream.close()
                 restoreTerminal()
             )
-            ]#
     else:
         (stdFiles, captures, toClose, toCloseWhenFlushed) = streamsBuilder.buildToChildFile(closeEvent)
         afterSpawnCleanup = (proc() =

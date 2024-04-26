@@ -59,7 +59,8 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         return AsyncProc(childProc: ChildProc(), cmd: cmdBuilt)
     
     #[ Parent stream incluse logic ]#
-    var streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr, MergeStderr in args.options)
+    var streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr,
+                            KeepStreamOpen in args.options, MergeStderr in args.options)
     if Interactive in args.options:
         streamsBuilder.flags.incl { InteractiveStdin, InteractiveOut }
     if CaptureInput in args.options:

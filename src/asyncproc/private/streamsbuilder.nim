@@ -18,7 +18,7 @@ type
 let delayedStdoutAsync = AsyncIoDelayed.new(stdoutAsync, 1)
 let delayedStderrAsync = AsyncIoDelayed.new(stderrAsync, 2)
 
-proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; mergeStderr: bool): StreamsBuilder
+proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStreamOpen, mergeStderr: bool): StreamsBuilder
 # Builders must be called in that order
 proc buildStdinInteractive(builder: StreamsBuilder)
 proc buildOutInteractive(builder: StreamsBuilder)
@@ -41,19 +41,20 @@ proc toPassFds*(stdin, stdout, stderr: AsyncFile): seq[tuple[src: FileHandle, de
 proc isInteractiveButNoInherit*(builder: StreamsBuilder): bool
 
 
-proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; mergeStderr: bool): StreamsBuilder =
+proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStreamOpen, mergeStderr: bool): StreamsBuilder =
     result = StreamsBuilder(
         flags: (if mergeStderr: { BuilderFlags.MergeStderr } else: {}),
         stdin: stdin,
         stdout: stdout,
         stderr: stderr,
     )
-    if stdin != nil:
-        result.toClose.add stdin
-    if stdout != nil:
-        result.toCloseWhenFlushed.add stdout
-    if stderr != nil:
-        result.toCloseWhenFlushed.add stderr
+    if not keepStreamOpen:
+        if stdin != nil:
+            result.toClose.add stdin
+        if stdout != nil:
+            result.toCloseWhenFlushed.add stdout
+        if stderr != nil:
+            result.toCloseWhenFlushed.add stderr
 
 proc buildStdinInteractive(builder: StreamsBuilder) =
     if builder.stdin == nil:
