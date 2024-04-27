@@ -117,19 +117,21 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
 
             stdFiles.stdin = slave
             discard streams.stdin.transfer(master, closeEvent)
-            discard master.transfer(stderrAsync, closeEvent)
+            discard master.transfer(stderrAsync)
             afterSpawnCleanup = (proc() =
                 stdFiles.stdout.close()
                 stdFiles.stderr.close()
             )
             afterWaitCleanup = (proc() {.closure.} =
-                slave.closeWhenFlushed()
                 master.closeWhenFlushed()
                 closeEvent.complete()
                 for stream in toCloseWhenFlushed:
                     stream.closeWhenFlushed()
                 for stream in toClose:
                     stream.close()
+                waitFor sleepAsync(1) # Necessary otherwise stdoutCapture/stderrCapture might not close
+                slave.close()
+                master.close()
                 restoreTerminal()
             )
     else:

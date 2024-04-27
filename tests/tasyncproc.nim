@@ -108,20 +108,18 @@ proc main() {.async.} =
         )))
         check getFdCount() == 5
 
-    ## Commented out = Work in progress
-    test "Interactive":
+    test "Interactive with input capture":
         var sh2 = ProcArgs(prefixCmd: @["sh", "-c"], options: { Interactive, CaptureInput, CaptureOutput, CaptureOutputErr })
         var sh2Merged = sh2.merge(toAdd = { MergeStderr })
 
         var outputStr = (await sh2Merged.run(@["echo Hello"])).output
         check outputStr == "Hello\r\n"
         check outputStr.withoutLineEnd() == "Hello"
-        ## Not implemented yet
-        #check (await sh2.run(@["echo Hello"])).output == "Hello\n"
-        #stdout.write "Please provide an input: "
-        #var procRes = await sh2.run(@["read a; echo $a"])
-        #check procRes.input == procRes.output
-        #check getFdCount() == 5
+        check (await sh2.run(@["echo Hello"])).output == "Hello\n"
+        stdout.write "Please provide an input: "
+        var procRes = await sh2.run(@["read a; echo $a"])
+        check procRes.input == procRes.output
+        check getFdCount() == 5
     
 
 waitFor main()

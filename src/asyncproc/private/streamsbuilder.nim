@@ -62,7 +62,7 @@ proc buildStdinInteractive(builder: StreamsBuilder) =
     elif builder.stdin == stdinAsync:
         discard
     elif builder.stdin of AsyncChainReader:
-        AsyncChainReader(builder.stdin).readers.addLast stdinAsync
+        AsyncChainReader(builder.stdin).addReader stdinAsync
     else:
         builder.stdin = AsyncChainReader.new(builder.stdin, stdinAsync)
 
