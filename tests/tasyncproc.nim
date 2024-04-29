@@ -11,7 +11,6 @@ var shMergedStderr = shUnquotedWithPrefix.merge(toAdd = { MergeStderr })
 
 let pid = getCurrentProcessId()
 proc getFdCount(): int =
-    return 5
     toSeq(walkDir("/proc/" & $pid & "/fd", relative=true)).len()
 
 proc main() {.async.} =
@@ -45,7 +44,7 @@ proc main() {.async.} =
 
     test "With Tee output":
         var outStream = AsyncStream.new()
-        check (await sh.runGetOutput(@["echo", "Hello"], ProcArgsModifier(output: some outStream.AsyncIoBase))) == "Hello"
+        check (await sh.runGetOutput(@["echo", "Hello"], ProcArgsModifier(output: some outStream.writer.AsyncIoBase))) == "Hello"
         check (await outStream.readAll()) == "Hello\n"
         check getFdCount() == 5
 

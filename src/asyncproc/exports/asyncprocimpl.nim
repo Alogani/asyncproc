@@ -82,6 +82,7 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         logFn: if WithLogging in args.options: args.logFn else: nil,
         onErrorFn: args.onErrorFn,
         captureStreams: captures,
+        closeWhenCapturesFlushed: closeWhenCapturesFlushed,
         isBeingWaited: Listener.new(),
         afterWaitCleanup: afterWait,
     )
