@@ -56,5 +56,5 @@ You can also see [shellcmd](https://github.com/Alogani/shellcmd) source code to 
 
 - **Unstable API** : How you use asyncproc is susceptible to change. It could occur to serve [shellcmd](https://github.com/Alogani/shellcmd) library development. If you want to use as a pre-release, please only install and use a tagged version and don't update frequently until v1.0.0 is reached. Releases with breaking change will make the second number of semver be updated (eg: v0.1.1 to v0.2.0)
 - Only available in unix. Support for windows is not in the priority list
-- Only support one async backend : asyncdispatch
+- Only support one async backend: std/asyncdispatch (incompatible with chronos)
 - Don't expect more performance. Although development is focused to avoid unecessary or costly operations, asynchronous code has a large overhead and is usually far slower than sync one in many situations. Furthermore concisness and flexibilty are proritized
