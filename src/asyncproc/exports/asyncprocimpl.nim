@@ -34,7 +34,8 @@ Used when both Interactive is set and MergeStderr is not set, otherwise:
 
 proc askYesNo(sh: ProcArgs, text: string): bool
 
-proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): AsyncProc =
+
+proc start*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier): AsyncProc =
     ## It is the responsability of the caller to close its end of AsyncStream, AsyncPipe, etc. to avoid deadlocks
     ## Some commands will only work well if stdin is connected to a pseudo terminal: if parent is inside a terminal, then don't use CaptureInput, and use either Interactive with stdin = nil or stdin = stdinAsync
     if cmd.len() == 0:
@@ -86,7 +87,15 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         isBeingWaited: Listener.new(),
         afterWaitCleanup: afterWait,
     )
-    
+
+proc start*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn)): AsyncProc =
+    start(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn))
 
 proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
     ## Raise error if cancelFut is triggered
@@ -137,15 +146,33 @@ proc terminate*(p: AsyncProc) = p.childProc.terminate()
 proc kill*(p: AsyncProc) = p.childProc.kill()
 
 
-proc run*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier(),
+proc run*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
     await sh.start(cmd, argsModifier).wait(cancelFut)
 
-proc runAssert*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier(),
+proc run*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn), cancelFut: Future[void] = nil): Future[ProcResult] =
+    run(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
+
+proc runAssert*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
     assertSuccess await sh.start(cmd, argsModifier).wait(cancelFut)
 
-proc runAssertDiscard*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier(),
+proc runAssert*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn), cancelFut: Future[void] = nil): Future[ProcResult] =
+    runAssert(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
+
+proc runDiscard*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[void] {.async.} =
     when defined(release):
         discard assertSuccess await sh.start(cmd,
@@ -157,7 +184,16 @@ cancelFut: Future[void] = nil): Future[void] {.async.} =
             argsModifier.merge(toRemove = { CaptureInput, CaptureOutput })
         ).wait(cancelFut)
 
-proc runCheck*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier(),
+proc runDiscard*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn), cancelFut: Future[void] = nil): Future[void] =
+    runDiscard(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
+
+proc runCheck*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[bool] {.async.} =
     await(sh.start(cmd,
         argsModifier.merge(toRemove = (when defined(release):
@@ -167,7 +203,16 @@ cancelFut: Future[void] = nil): Future[bool] {.async.} =
         ))
     ).wait(cancelFut)).success
 
-proc runGetOutput*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier(),
+proc runCheck*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn), cancelFut: Future[void] = nil): Future[bool] =
+    runCheck(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
+
+proc runGetOutput*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[string] {.async.} =
     ## LineEnd is always stripped, because it is usually unawanted. Use sh.run if this comportement is not wanted
     ## Ignore MergeStderrOption
@@ -181,16 +226,34 @@ cancelFut: Future[void] = nil): Future[string] {.async.} =
             )
     )).wait(cancelFut))).output
 
-proc runGetLines*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier(),
+proc runGetOutput*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn), cancelFut: Future[void] = nil): Future[string] =
+    runGetOutput(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
+
+proc runGetLines*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[seq[string]] {.async.} =
     splitLines withoutLineEnd await sh.runGetOutput(cmd, argsModifier)
 
-proc runGetOutputStream*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier(),
+proc runGetLines*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn), cancelFut: Future[void] = nil): Future[seq[string]] =
+    runGetLines(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
+
+proc runGetOutputStream*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): (AsyncIoBase, Future[void]) =
     ## Return also the future to indicate end of subprocess
     ## Ignore MergeStderrOption
     var pipe = AsyncPipe.new()
-    var finishFut = sh.runAssertDiscard(cmd,
+    var finishFut = sh.runDiscard(cmd,
         argsModifier.merge(
             toRemove = (when defined(release):
                     { MergeStderr, Interactive, CaptureOutput, CaptureInput, CaptureOutputErr }
@@ -201,13 +264,22 @@ cancelFut: Future[void] = nil): (AsyncIoBase, Future[void]) =
     ), cancelFut)
     return (pipe.reader, finishFut)
 
-proc runGetStreams*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier(),
+proc runGetOutputStream*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn), cancelFut: Future[void] = nil): (AsyncIoBase, Future[void]) =
+    runGetOutputStream(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
+
+proc runGetStreams*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): (AsyncIoBase, AsyncIoBase, Future[void]) =
     ## Return also the future to indicate end of subprocess
     ## Ignore MergeStderr option
     var outputPipe = AsyncPipe.new()
     var outputErrPipe = AsyncPipe.new()
-    var finishFut = sh.runAssertDiscard(cmd,
+    var finishFut = sh.runDiscard(cmd,
         argsModifier.merge(
             toRemove = (when defined(release):
                     { MergeStderr, Interactive, CaptureOutput, CaptureInput, CaptureOutputErr }
@@ -219,6 +291,14 @@ cancelFut: Future[void] = nil): (AsyncIoBase, AsyncIoBase, Future[void]) =
     ), cancelFut)
     return (outputPipe.reader, outputErrPipe.reader, finishFut)
 
+proc runGetStreams*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
+        input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
+        env = none(ProcEnv), envModifier = none(ProcEnv), workingDir = none(string),
+        processName = none(string), logFn = none(LogFn), onErrorFn = none(OnErrorFn), cancelFut: Future[void] = nil): (AsyncIoBase, AsyncIoBase, Future[void]) =
+    runGetStreams(sh, cmd, ProcArgsModifier(prefixCmd: prefixCmd, toAdd: toAdd, toRemove: toRemove,
+        input: input, output: output, outputErr: outputErr,
+        env: env, envModifier: envModifier, workingDir: workingDir,
+        processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
 
 proc askYesNo(sh: ProcArgs, text: string): bool =
     # A more complte version is available in myshellcmd/ui

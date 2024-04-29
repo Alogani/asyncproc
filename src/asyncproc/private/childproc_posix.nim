@@ -59,7 +59,7 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     afterSpawn: proc() {.closure.},
     afterWait: proc(): Future[void] {.closure.},
  ] =
-    if streamsBuilder.isInteractiveButNoInherit():
+    if streamsBuilder.nonStandardStdin():
         var (master, slave) = newChildTerminalPair()
         var closeEvent = newFuture[void]()
         if MergeStderr in streamsBuilder.flags:
@@ -76,9 +76,9 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                 afterSpawn: proc() = slave.close(),
                 afterWait: proc(): Future[void] {.async.} =
                     closeEvent.complete()
+                    await all(transferWaiters)
                     for s in closeWhenWaited:
                         s.close()
-                    await all(transferWaiters)
                     restoreTerminal()
             )
         else:
@@ -113,9 +113,9 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                 ),
                 afterWait: proc(): Future[void] {.async.} =
                     closeEvent.complete()
+                    await all(transferWaiters)
                     for s in closeWhenWaited:
                         s.close()
-                    await all(transferWaiters)
                     restoreTerminal()
             )
     else:
@@ -134,9 +134,9 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
             ),
             afterWait: proc(): Future[void] {.async.} =
                 closeEvent.complete()
+                await all(transferWaiters)
                 for s in closeWhenWaited:
                     s.close()
-                await all(transferWaiters)            
         )
 
 proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =

@@ -41,7 +41,7 @@ proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple
 proc buildOutChildFileImpl(builder: StreamsBuilder, stream: AsyncIoBase): AsyncFile
 proc buildImpl(builder: StreamsBuilder): tuple[captures: tuple[input, output, outputErr: Future[string]]]
 proc toPassFds*(stdin, stdout, stderr: AsyncFile): seq[tuple[src: FileHandle, dest: FileHandle]]
-proc isInteractiveButNoInherit*(builder: StreamsBuilder): bool
+proc nonStandardStdin*(builder: StreamsBuilder): bool
 
 
 proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStreamOpen, mergeStderr: bool): StreamsBuilder =
@@ -150,8 +150,10 @@ proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple
             AsyncFile(builder.stdin)
         else:
             var pipe = AsyncPipe.new()
-            builder.transferWaiters.add builder.stdin.transfer(pipe.writer, closeEvent)
-            builder.closeWhenWaited.add pipe
+            builder.transferWaiters.add builder.stdin.transfer(pipe.writer, closeEvent).then(proc() {.async.} =
+                pipe.writer.close()
+            )
+            builder.closeWhenWaited.add pipe.reader
             pipe.reader
     let stdout = builder.buildOutChildFileImpl(builder.stdout)
     let stderr =
@@ -200,5 +202,6 @@ proc toPassFds*(stdin, stdout, stderr: AsyncFile): seq[tuple[src: FileHandle, de
     if stderr != nil:
         result.add (stderr.fd, 2.FileHandle)
 
-proc isInteractiveButNoInherit*(builder: StreamsBuilder): bool =
-    InteractiveStdin in builder.flags and (builder.stdin != nil or builder.stdin != stdinAsync)
+proc nonStandardStdin*(builder: StreamsBuilder): bool =
+    ## if stdin is open and will not be equal to stdinAsync -> check before any build occurs
+    (InteractiveStdin in builder.flags or builder.stdin == stdinAsync) and CaptureStdin in builder.flags
