@@ -1,5 +1,6 @@
 import std/[options, strutils]
 import asyncio, asyncio/[asyncpipe]
+import asyncsync, asyncsync/listener
 
 import ./procargs {.all.}
 import ./procenv {.all.}
@@ -20,8 +21,9 @@ type
         logFn: LogFn
         onErrorFn: OnErrorFn
         captureStreams: tuple[input, output, outputErr: Future[string]]
+        closeWhenCapturesFlushed: seq[AsyncIoBase]
         isBeingWaited: Listener
-        cleanups: proc()
+        afterWaitCleanup: proc(): Future[void]
 
 #[
 Used when both Interactive is set and MergeStderr is not set, otherwise:
@@ -59,7 +61,8 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         return AsyncProc(childProc: ChildProc(), cmd: cmdBuilt)
     
     #[ Parent stream incluse logic ]#
-    var streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr, MergeStderr in args.options)
+    var streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr,
+                            KeepStreamOpen in args.options, MergeStderr in args.options)
     if Interactive in args.options:
         streamsBuilder.flags.incl { InteractiveStdin, InteractiveOut }
     if CaptureInput in args.options:
@@ -68,19 +71,20 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier = ProcArgsModifier()): 
         streamsBuilder.flags.incl CaptureStdout
     if CaptureOutputErr in args.options and MergeStderr notin args.options:
         streamsBuilder.flags.incl CaptureStderr
-    let (passFds, captures, useFakePty, afterSpawnCleanup, afterWaitCleanup) =
+    let (passFds, captures, useFakePty, closeWhenCapturesFlushed, afterSpawn, afterWait) =
         streamsBuilder.toChildStream()
     let childProc = startProcess(cmdBuilt[0], @[processName] & cmdBuilt[1..^1],
         passFds, env, args.workingDir, Daemon in args.options, fakePty = useFakePty)
-    afterSpawnCleanup()
+    afterSpawn()
     result = AsyncProc(
         childProc: childProc,
         cmd: cmdBuilt,
         logFn: if WithLogging in args.options: args.logFn else: nil,
         onErrorFn: args.onErrorFn,
         captureStreams: captures,
+        closeWhenCapturesFlushed: closeWhenCapturesFlushed,
         isBeingWaited: Listener.new(),
-        cleanups: afterWaitCleanup,
+        afterWaitCleanup: afterWait,
     )
     
 
@@ -96,7 +100,7 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
         if not self.isBeingWaited.isTriggered():
             raise newException(OsError, "Timeout expired")
     let exitCode = self.childProc.wait()
-    self.cleanups()
+    await self.afterWaitCleanup()
     result = ProcResult(
         cmd: self.cmd,
         input:
@@ -117,6 +121,8 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
         exitCode: exitCode,
         success: exitCode == 0,
     )
+    for stream in self.closeWhenCapturesFlushed:
+        stream.close()
     result.setOnErrorFn(self.onErrorFn)
     if self.logFn != nil:
         self.logFn(result)

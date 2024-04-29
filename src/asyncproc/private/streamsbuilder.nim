@@ -7,8 +7,9 @@ type
     StreamsBuilder* = ref object
         flags*: set[BuilderFlags]
         stdin, stdout, stderr: AsyncIoBase
-        toClose: seq[AsyncIoBase]
-        toCloseWhenFlushed: seq[AsyncIoBase]
+        closeWhenWaited: seq[AsyncIoBase]
+        transferWaiters: seq[Future[void]]
+        closeWhenCapturesFlushed: seq[AsyncIoBase]
 
     BuilderFlags* = enum
         InteractiveStdin, InteractiveOut,
@@ -18,7 +19,7 @@ type
 let delayedStdoutAsync = AsyncIoDelayed.new(stdoutAsync, 1)
 let delayedStderrAsync = AsyncIoDelayed.new(stderrAsync, 2)
 
-proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; mergeStderr: bool): StreamsBuilder
+proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStreamOpen, mergeStderr: bool): StreamsBuilder
 # Builders must be called in that order
 proc buildStdinInteractive(builder: StreamsBuilder)
 proc buildOutInteractive(builder: StreamsBuilder)
@@ -26,34 +27,37 @@ proc buildOutInteractiveImpl(stream: var AsyncIoBase, stdStream, stdStreamDelaye
 proc buildStdinCapture(builder: StreamsBuilder): Future[string]
 proc buildStdoutCapture(builder: StreamsBuilder): Future[string]
 proc buildStderrCapture(builder: StreamsBuilder): Future[string]
-proc buildOutCaptureImpl(builder: StreamsBuilder, stream: var AsyncIoBase): AsyncIoBase
+proc buildOutCaptureImpl(builder: StreamsBuilder, stream: var AsyncIoBase): Future[string]
 proc buildToStreams*(builder: StreamsBuilder): tuple[
     streams: tuple[stdin, stdout, stderr: AsyncIoBase],
     captures: tuple[input, output, outputErr: Future[string]],
-    toClose: seq[AsyncIoBase], toCloseWhenFlushed: seq[AsyncIoBase]]
+    transferWaiters: seq[Future[void]],
+    closeWhenWaited, closeWhenCapturesFlushed: seq[AsyncIoBase]]
 proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple[
     stdFiles: tuple[stdin, stdout, stderr: Asyncfile],
     captures: tuple[input, output, outputErr: Future[string]],
-    toClose: seq[AsyncIoBase], toCloseWhenFlushed: seq[AsyncIoBase]]
+    transferWaiters: seq[Future[void]],
+    closeWhenWaited, closeWhenCapturesFlushed: seq[AsyncIoBase]]
 proc buildOutChildFileImpl(builder: StreamsBuilder, stream: AsyncIoBase): AsyncFile
 proc buildImpl(builder: StreamsBuilder): tuple[captures: tuple[input, output, outputErr: Future[string]]]
 proc toPassFds*(stdin, stdout, stderr: AsyncFile): seq[tuple[src: FileHandle, dest: FileHandle]]
 proc isInteractiveButNoInherit*(builder: StreamsBuilder): bool
 
 
-proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; mergeStderr: bool): StreamsBuilder =
+proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStreamOpen, mergeStderr: bool): StreamsBuilder =
     result = StreamsBuilder(
         flags: (if mergeStderr: { BuilderFlags.MergeStderr } else: {}),
         stdin: stdin,
         stdout: stdout,
         stderr: stderr,
     )
-    if stdin != nil:
-        result.toClose.add stdin
-    if stdout != nil:
-        result.toCloseWhenFlushed.add stdout
-    if stderr != nil:
-        result.toCloseWhenFlushed.add stderr
+    if not keepStreamOpen:
+        if stdin != nil:
+            result.closeWhenWaited.add stdin
+        if stdout != nil:
+            result.closeWhenWaited.add stdout
+        if stderr != nil:
+            result.closeWhenWaited.add stderr
 
 proc buildStdinInteractive(builder: StreamsBuilder) =
     if builder.stdin == nil:
@@ -61,7 +65,7 @@ proc buildStdinInteractive(builder: StreamsBuilder) =
     elif builder.stdin == stdinAsync:
         discard
     elif builder.stdin of AsyncChainReader:
-        AsyncChainReader(builder.stdin).readers.addLast stdinAsync
+        AsyncChainReader(builder.stdin).addReader stdinAsync
     else:
         builder.stdin = AsyncChainReader.new(builder.stdin, stdinAsync)
 
@@ -88,48 +92,53 @@ proc buildStdinCapture(builder: StreamsBuilder): Future[string] =
         return
     let captureIo = AsyncStream.new()
     builder.stdin = AsyncTeeReader.new(builder.stdin, captureIo)
-    builder.toCloseWhenFlushed.add captureIo
+    builder.closeWhenWaited.add captureIo.writer
     return captureIo.readAll()
 
 proc buildStdoutCapture(builder: StreamsBuilder): Future[string] =
-    builder.buildOutCaptureImpl(builder.stdout).readAll()
+    builder.buildOutCaptureImpl(builder.stdout)
 
 proc buildStderrCapture(builder: StreamsBuilder): Future[string] =
-    builder.buildOutCaptureImpl(builder.stderr).readAll()
+    builder.buildOutCaptureImpl(builder.stderr)
 
-proc buildOutCaptureImpl(builder: StreamsBuilder, stream: var AsyncIoBase): AsyncIoBase =
+proc buildOutCaptureImpl(builder: StreamsBuilder, stream: var AsyncIoBase): Future[string] =
     if stream != nil:
         let captureIo = AsyncStream.new()
         if stream of AsyncTeeWriter:
             AsyncTeeWriter(stream).writers.add(captureIo)
         else:
-            stream = AsyncTeeWriter.new(stream, captureIo)
-        builder.toCloseWhenFlushed.add captureIo
-        return captureIo
+            stream = AsyncTeeWriter.new(stream, captureIo.writer)
+        builder.closeWhenWaited.add captureIo.writer
+        builder.closeWhenCapturesFlushed.add captureIo.reader
+        return captureIo.reader.readAll()
     else:
         var pipe = AsyncPipe.new()
         stream = pipe.writer
-        builder.toClose.add pipe.writer
-        builder.toCloseWhenFlushed.add pipe.reader
-        return pipe.reader
+        builder.closeWhenWaited.add pipe.writer
+        builder.closeWhenCapturesFlushed.add pipe.reader
+        return pipe.reader.readAll()
 
 proc buildToStreams*(builder: StreamsBuilder): tuple[
     streams: tuple[stdin, stdout, stderr: AsyncIoBase],
     captures: tuple[input, output, outputErr: Future[string]],
-    toClose: seq[AsyncIoBase], toCloseWhenFlushed: seq[AsyncIoBase]
+    transferWaiters: seq[Future[void]],
+    closeWhenWaited, closeWhenCapturesFlushed: seq[AsyncIoBase]
 ] =
+    ## Closing is handled internally, so output should not be closed using anything else as toClose return value
     let (captures) = builder.buildImpl()
     return (
         (builder.stdin, builder.stdout, builder.stderr),
         captures,
-        builder.toClose,
-        builder.toCloseWhenFlushed,
+        builder.transferWaiters,
+        builder.closeWhenWaited,
+        builder.closeWhenCapturesFlushed
     )
 
 proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple[
     stdFiles: tuple[stdin, stdout, stderr: Asyncfile],
     captures: tuple[input, output, outputErr: Future[string]],
-    toClose: seq[AsyncIoBase], toCloseWhenFlushed: seq[AsyncIoBase]
+    transferWaiters: seq[Future[void]],
+    closeWhenWaited, closeWhenCapturesFlushed: seq[AsyncIoBase]
 ] =
     let (captures) = builder.buildImpl()
     let stdin =
@@ -141,9 +150,8 @@ proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple
             AsyncFile(builder.stdin)
         else:
             var pipe = AsyncPipe.new()
-            discard builder.stdin.transfer(pipe.writer, closeEvent)
-            builder.toClose.add pipe.writer
-            builder.toClose.add pipe.reader
+            builder.transferWaiters.add builder.stdin.transfer(pipe.writer, closeEvent)
+            builder.closeWhenWaited.add pipe
             pipe.reader
     let stdout = builder.buildOutChildFileImpl(builder.stdout)
     let stderr =
@@ -154,8 +162,9 @@ proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple
     return (
         (stdin, stdout, stderr),
         captures,
-        builder.toClose,
-        builder.toCloseWhenFlushed,
+        builder.transferWaiters,
+        builder.closeWhenWaited,
+        builder.closeWhenCapturesFlushed
     )
 
 proc buildOutChildFileImpl(builder: StreamsBuilder, stream: AsyncIoBase): AsyncFile =
@@ -167,9 +176,8 @@ proc buildOutChildFileImpl(builder: StreamsBuilder, stream: AsyncIoBase): AsyncF
         return AsyncPipe(stream).writer
     else:
         var pipe = AsyncPipe.new()
-        discard pipe.reader.transfer(stream)
-        builder.toCloseWhenFlushed.add pipe.reader
-        builder.toClose.add pipe.writer
+        builder.transferWaiters.add pipe.reader.transfer(stream).then(proc() {.async.} = pipe.reader.close())
+        builder.closeWhenWaited.add pipe.writer
         return pipe.writer
 
 proc buildImpl(builder: StreamsBuilder): tuple[captures: tuple[input, output, outputErr: Future[string]]] =

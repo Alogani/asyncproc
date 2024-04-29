@@ -17,7 +17,7 @@ type
         CaptureOutput, CaptureOutputErr, CaptureInput,
         UseParentEnv, Daemon, DryRun,
         ShowCommand, AskConfirmation, WithLogging,
-        SetEnvOnCmdLine
+        SetEnvOnCmdLine, KeepStreamOpen
         #[
             Interactive:
                 - First: parent's streams will be added to input/output/outputErr of child

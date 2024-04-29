@@ -29,8 +29,9 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
     captures: tuple[input, output, outputErr: Future[string]],
     useFakePty: bool,
-    afterSpawnCleanup: proc(),
-    afterWaitCleanup: proc()
+    closeWhenCapturesFlushed: seq[AsyncIoBase],
+    afterSpawn: proc() {.closure.},
+    afterWait: proc(): Future[void] {.closure.}
  ]
 proc newPtyPair(): tuple[master, slave: AsyncFile]
 proc newChildTerminalPair(): tuple[master, slave: AsyncFile]
@@ -54,105 +55,89 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
     captures: tuple[input, output, outputErr: Future[string]],
     useFakePty: bool,
-    afterSpawnCleanup: proc(),
-    afterWaitCleanup: proc()
+    closeWhenCapturesFlushed: seq[AsyncIoBase],
+    afterSpawn: proc() {.closure.},
+    afterWait: proc(): Future[void] {.closure.},
  ] =
-    var
-        stdFiles: tuple[stdin, stdout, stderr: Asyncfile]
-        captures: tuple[input, output, outputErr: Future[string]]
-        useFakePty = false
-        toClose: seq[AsyncIoBase]
-        toCloseWhenFlushed: seq[AsyncIoBase]
-        afterSpawnCleanup: proc()
-        afterWaitCleanup: proc()
-        closeEvent = newFuture[void]()
     if streamsBuilder.isInteractiveButNoInherit():
-        useFakePty = true
-        var
-            (master, slave) = newChildTerminalPair()
-            streams: tuple[stdin, stdout, stderr: AsyncIoBase]
+        var (master, slave) = newChildTerminalPair()
+        var closeEvent = newFuture[void]()
         if MergeStderr in streamsBuilder.flags:
-            (streams, captures, toClose, toCloseWhenFlushed) = streamsBuilder.buildToStreams()
-            stdFiles.stdin = slave
-            stdFiles.stdout = slave
-            stdFiles.stderr = slave
+            var (streams, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
+                ) = streamsBuilder.buildToStreams()
             discard streams.stdin.transfer(master, closeEvent)
-            discard master.transfer(streams.stdout)
-            afterSpawnCleanup = (proc() =
-                slave.close
-            )
-            afterWaitCleanup = (proc() =
-                closeEvent.complete()
-                master.closeWhenFlushed()
-                for stream in toCloseWhenFlushed:
-                    stream.closeWhenFlushed()
-                for stream in toClose:
-                    stream.close()
-                restoreTerminal()
+            transferWaiters.add master.transfer(streams.stdout)
+            closeWhenCapturesFlushed.add master
+            return (
+                passFds: toPassFds(slave, slave, slave),
+                captures: captures,
+                useFakePty: true,
+                closeWhenCapturesFlushed: closeWhenCapturesFlushed,
+                afterSpawn: proc() = slave.close(),
+                afterWait: proc(): Future[void] {.async.} =
+                    closeEvent.complete()
+                    for s in closeWhenWaited:
+                        s.close()
+                    await all(transferWaiters)
+                    restoreTerminal()
             )
         else:
-            raise newException(AssertionDefect, "Not implemented yet")
-            #[
             streamsBuilder.flags.excl InteractiveOut
-            (streams, captures, ownedStreams, transferWaiters) = streamsBuilder.buildToStreams()
-            var stdoutCapture: AsyncIoBase
-            if streams.stdout of AsyncPipe:
-                transferWaiters.add streams.stdout.transfer(slave)
-                stdFiles.stdout = AsyncPipe(streams.stdout).writer
-            else:
+            var (streams, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
+                ) = streamsBuilder.buildToStreams()
+            var stdoutChild, stderrChild: AsyncFile
+            var stdoutCapture, stderrCapture: AsyncIoBase
+            block:
                 var pipe = AsyncPipe.new()
-                stdFiles.stdout = pipe.writer
                 stdoutCapture = AsyncTeeReader.new(pipe.reader, streams.stdout)
-                ownedStreams.add pipe
-            var stderrCapture: AsyncIoBase
-            if streams.stderr of AsyncPipe:
-                transferWaiters.add streams.stderr.transfer(slave)
-                stdFiles.stdout = AsyncPipe(streams.stderr).writer
-            else:
+                stdoutChild = pipe.writer
+            block:
                 var pipe = AsyncPipe.new()
-                stdFiles.stderr = pipe.writer
                 stderrCapture = AsyncTeeReader.new(pipe.reader, streams.stderr)
-                ownedStreams.add pipe
-            transferWaiters.add stdoutCapture.transfer(slave)
-            transferWaiters.add stderrCapture.transfer(slave)
-
-            stdFiles.stdin = slave
-            transferWaiters.add streams.stdin.transfer(master, closeEvent)
-            transferWaiters.add master.transfer(stderrAsync, closeEvent)
-            afterSpawnCleanup = (proc() =
-                ownedStreams.closeIfFound(stdFiles.stdout)
-                ownedStreams.closeIfFound(stdFiles.stderr)
-            )
-            afterWaitCleanup = (proc() {.closure.} =
-                closeEvent.complete()
+                stderrChild = pipe.writer
+            transferWaiters.add (stdoutCapture.transfer(slave) and stderrCapture.transfer(slave)).then(proc() {.async.} =
+                await stdoutCapture.clear() and stderrCapture.clear()
                 slave.close()
-                master.close()
-                for stream in ownedStreams:
-                    stream.closeWhenFlushed()
-                restoreTerminal()
+                stdoutCapture.close()
+                stderrCapture.close())
+            transferWaiters.add master.transfer(stderrAsync).then(proc() {.async.} = master.close())
+            discard streams.stdin.transfer(master, closeEvent)
+            return (
+                passFds: toPassFds(slave, stdoutChild, stderrChild),
+                captures: captures,
+                useFakePty: true,
+                closeWhenCapturesFlushed: closeWhenCapturesFlushed,
+                afterSpawn: (proc() =
+                    stdoutChild.close()
+                    stderrChild.close()
+                ),
+                afterWait: proc(): Future[void] {.async.} =
+                    closeEvent.complete()
+                    for s in closeWhenWaited:
+                        s.close()
+                    await all(transferWaiters)
+                    restoreTerminal()
             )
-            ]#
     else:
-        (stdFiles, captures, toClose, toCloseWhenFlushed) = streamsBuilder.buildToChildFile(closeEvent)
-        afterSpawnCleanup = (proc() =
-            if stdFiles.stdin != nil: stdFiles.stdin.close()
-            if stdFiles.stdout != nil: stdFiles.stdout.close()
-            if stdFiles.stderr != nil: stdFiles.stderr.close()
+        var closeEvent = newFuture[void]()
+        var (stdFiles, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
+            ) = streamsBuilder.buildToChildFile(closeEvent)
+        return (
+            passFds: toPassFds(stdFiles.stdin, stdFiles.stdout, stdFiles.stderr),
+            captures: captures,
+            useFakePty: false,
+            closeWhenCapturesFlushed: closeWhenCapturesFlushed,
+            afterSpawn: (proc() =
+                if stdFiles.stdin != nil: stdFiles.stdin.close()
+                if stdFiles.stdout != nil: stdFiles.stdout.close()
+                if stdFiles.stderr != nil: stdFiles.stderr.close()
+            ),
+            afterWait: proc(): Future[void] {.async.} =
+                closeEvent.complete()
+                for s in closeWhenWaited:
+                    s.close()
+                await all(transferWaiters)            
         )
-        afterWaitCleanup = (proc() =
-            closeEvent.complete()
-            for stream in toCloseWhenFlushed:
-                stream.closeWhenFlushed()
-            for stream in toClose:
-                stream.close()
-        )
-    return (
-        toPassFds(stdFiles.stdin, stdFiles.stdout, stdFiles.stderr),
-        captures,
-        useFakePty,
-        afterSpawnCleanup,
-        afterWaitCleanup,
-    )
 
 proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
     if TermiosBackup.isNone():
