@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.2.1"
+version       = "0.3.0"
 author        = "alogani"
 description   = "Flexible child process spawner with strong async features"
 license       = "MIT"
