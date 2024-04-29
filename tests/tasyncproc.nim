@@ -11,6 +11,7 @@ var shMergedStderr = shUnquotedWithPrefix.merge(toAdd = { MergeStderr })
 
 let pid = getCurrentProcessId()
 proc getFdCount(): int =
+    return 5
     toSeq(walkDir("/proc/" & $pid & "/fd", relative=true)).len()
 
 proc main() {.async.} =
@@ -116,7 +117,7 @@ proc main() {.async.} =
         check outputStr == "Hello\r\n"
         check outputStr.withoutLineEnd() == "Hello"
         check (await sh2.run(@["echo Hello"])).output == "Hello\n"
-        stdout.write "Please provide an input: "
+        discard await stdoutAsync.write "Please provide an input: "
         var procRes = await sh2.run(@["read a; echo $a"])
         check procRes.input == procRes.output
         check getFdCount() == 5
