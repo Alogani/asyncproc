@@ -5,7 +5,7 @@ It was specially built to close the gap from shell language and nim.
 
 ## Features
 
-- Concise: even complex configurations can be one-lined
+- Concise: even complex configurations can be one-lined (see also implicitAsync macro to avoid repetition of await keyword)
 - Flexible and straightforward. All options can be tweaked using a flag :
   - Can be easily put in true foreground, keeping the ability to terminal process control (ctrl+c, ctrl+z in linux) and to have shell history
   - Can capture input/output/output error streams, even when put on foreground
