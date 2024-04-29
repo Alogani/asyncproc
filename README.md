@@ -26,12 +26,13 @@ It was specially built to close the gap from shell language and nim.
 ```
 import std/options
 import asyncproc
+import asyncio/asyncstring
 
 const myFile = "myfile.txt"
 
 proc main() {.async.} =
   ## Create a file
-  await sh.runAssertDiscard(@["touch", myFile])
+  await sh.runDiscard(@["touch", myFile])
 
   ## Check the file has been created
   echo true == (await sh.runCheck(@["test", "-f", myFile]))
@@ -43,7 +44,7 @@ proc main() {.async.} =
   echo await sh.runGetLines(@["ls"])
 
   ## Write to the file
-  await sh.runAssertDiscard(@["dd", "of=" & myFile], ProcArgsModifier(input = some AsyncString.new("Hello world")))
+  await sh.runDiscard(@["dd", "of=" & myFile], input = some AsyncString.new("Hello world\n").AsyncIoBase, toRemove = { Interactive })
 
 waitFor main()
 ```
