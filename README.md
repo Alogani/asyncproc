@@ -19,7 +19,7 @@ It was specially built to close the gap from shell language and nim.
 
 `nimble install asyncproc`
 
-### Usage (linux)
+### Example usage (linux)
 
 ```
 import std/options
