@@ -3,6 +3,8 @@
 Asynchronous child process spawner, with high flexibility on its stream handling for input/output/erro handles.
 It was specially built to close the gap from shell language and nim.
 
+_This project is *not* related to [chronos/asyncproc](https://github.com/status-im/nim-chronos/blob/master/chronos/asyncproc.nim)_
+
 ## Features
 
 - Developped with interactivness in mind (you can easily mixed user input/output, and automated input)
