@@ -175,8 +175,8 @@ workingDir = "", daemon = false, fakePty = false): ChildProc =
             else: will survive (but no action on fds is done)
     ]##
     var fdstoKeep = newSeq[FileHandle](passFds.len())
-    for (src, dest) in passFds:
-        fdstoKeep.add dest
+    for i in 0..high(passFds):
+        fdstoKeep[i] = passFds[i][1]
     # Nim objects to C objects
     var sysArgs = allocCStringArray(args)
     defer: deallocCStringArray(sysArgs)
