@@ -10,8 +10,8 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 2.0.2"
-requires "aloganimisc >= 0.1.1"
-requires "asyncio >= 0.4.0"
+requires "aloganimisc ~= 0.1.1"
+requires "asyncio ~= 0.4.0"
 
 task reinstall, "Reinstalls this package":
     var path = "~/.nimble/pkgs2/" & projectName() & "-" & $version & "-*"
