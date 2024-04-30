@@ -1,6 +1,6 @@
 import std/[os, exitprocs, posix, termios, bitops, options]
 import std/[tables, strutils]
-import asyncio, asyncio/[asyncpipe, asynctee]
+import asyncio, asyncio/[asyncpipe]
 
 import ./streamsbuilder
 
@@ -82,20 +82,14 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                     restoreTerminal()
             )
         else:
+            var stdoutCapture = AsyncPipe.new()
+            var stderrCapture = AsyncPipe.new()
+            streamsBuilder.addStreamtoStdout(slave)
+            streamsBuilder.addStreamtoStderr(slave)
             streamsBuilder.flags.excl InteractiveOut
             var (streams, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
                 ) = streamsBuilder.buildToStreams()
-            var stdoutChild, stderrChild: AsyncFile
-            var stdoutCapture, stderrCapture: AsyncIoBase
-            block:
-                var pipe = AsyncPipe.new()
-                stdoutCapture = AsyncTeeReader.new(pipe.reader, streams.stdout)
-                stdoutChild = pipe.writer
-            block:
-                var pipe = AsyncPipe.new()
-                stderrCapture = AsyncTeeReader.new(pipe.reader, streams.stderr)
-                stderrChild = pipe.writer
-            transferWaiters.add (stdoutCapture.transfer(slave) and stderrCapture.transfer(slave)).then(proc() {.async.} =
+            transferWaiters.add (stdoutCapture.transfer(streams.stdout) and stderrCapture.transfer(streams.stderr)).then(proc() {.async.} =
                 await stdoutCapture.clear() and stderrCapture.clear()
                 slave.close()
                 stdoutCapture.close()
@@ -103,13 +97,13 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
             transferWaiters.add master.transfer(stderrAsync).then(proc() {.async.} = master.close())
             discard streams.stdin.transfer(master, closeEvent)
             return (
-                passFds: toPassFds(slave, stdoutChild, stderrChild),
+                passFds: toPassFds(slave, stdoutCapture.writer, stderrCapture.writer),
                 captures: captures,
                 useFakePty: true,
                 closeWhenCapturesFlushed: closeWhenCapturesFlushed,
                 afterSpawn: (proc() =
-                    stdoutChild.close()
-                    stderrChild.close()
+                    stdoutCapture.writer.close()
+                    stderrCapture.writer.close()
                 ),
                 afterWait: proc(): Future[void] {.async.} =
                     closeEvent.complete()

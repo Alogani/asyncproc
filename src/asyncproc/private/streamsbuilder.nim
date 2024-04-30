@@ -20,6 +20,10 @@ let delayedStdoutAsync = AsyncIoDelayed.new(stdoutAsync, 1)
 let delayedStderrAsync = AsyncIoDelayed.new(stderrAsync, 2)
 
 proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStreamOpen, mergeStderr: bool): StreamsBuilder
+proc addStreamToStdinChain*(builder: StreamsBuilder, newStream: AsyncIoBase)
+proc addStreamtoStdout*(builder: StreamsBuilder, newStream: AsyncIoBase)
+proc addStreamtoStderr*(builder: StreamsBuilder, newStream: AsyncIoBase)
+proc addStreamtoOutImpl(stream: var AsyncIoBase, newStream: AsyncIoBase)
 # Builders must be called in that order
 proc buildStdinInteractive(builder: StreamsBuilder)
 proc buildOutInteractive(builder: StreamsBuilder)
@@ -59,15 +63,34 @@ proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStrea
         if stderr != nil:
             result.closeWhenWaited.add stderr
 
-proc buildStdinInteractive(builder: StreamsBuilder) =
+proc addStreamToStdinChain*(builder: StreamsBuilder, newStream: AsyncIoBase) =
     if builder.stdin == nil:
-        builder.stdin = stdinAsync
-    elif builder.stdin == stdinAsync:
+        builder.stdin = newStream
+    elif builder.stdin == newStream:
         discard
     elif builder.stdin of AsyncChainReader:
-        AsyncChainReader(builder.stdin).addReader stdinAsync
+        AsyncChainReader(builder.stdin).addReader newStream
     else:
-        builder.stdin = AsyncChainReader.new(builder.stdin, stdinAsync)
+        builder.stdin = AsyncChainReader.new(builder.stdin, newStream)
+
+proc addStreamtoStdout*(builder: StreamsBuilder, newStream: AsyncIoBase) =
+    builder.stdout.addStreamtoOutImpl(newStream)
+
+proc addStreamtoStderr*(builder: StreamsBuilder, newStream: AsyncIoBase) =
+    builder.stderr.addStreamtoOutImpl(newStream)
+
+proc buildStdinInteractive(builder: StreamsBuilder) =
+    builder.addStreamToStdinChain(stdinAsync)
+
+proc addStreamtoOutImpl(stream: var AsyncIoBase, newStream: AsyncIoBase) =
+    if stream == nil:
+        stream = newStream
+    elif stream == newStream:
+        discard
+    elif stream of AsyncTeeWriter:
+        AsyncTeeWriter(stream).writers.add(newStream)
+    else:
+        stream = AsyncTeeWriter.new(stream, newStream)
 
 proc buildOutInteractive(builder: StreamsBuilder) =
     if MergeStderr in builder.flags:
