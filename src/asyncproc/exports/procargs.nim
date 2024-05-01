@@ -18,7 +18,7 @@ type
         UseParentEnv, Daemon, DryRun,
         ShowCommand, AskConfirmation, WithLogging,
         SetEnvOnCmdLine, KeepStreamOpen
-        #[
+        ##[
             Interactive:
                 - First: parent's streams will be added to input/output/outputErr of child
                 - This will not affect Capture options.
@@ -44,7 +44,7 @@ type
             SetEnvOnCmdLine (low level option):
                 - Instead of giving childProc an environment, it will be given an empty environment
                 - And env will be put on commandline. Exemple: @["ssh", "user@localhost", "export MYVAR=MYVAL MYVAR2=MYVAL2; command"]
-        ]#
+        ]##
     
 const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, CaptureOutputErr, UseParentEnv }
 
@@ -60,7 +60,7 @@ type
         input*: AsyncIoBase
         output*: AsyncIoBase
         outputErr*: AsyncIoBase
-        #[
+        ##[
             prefixCmd: command that is put before the actual command being run. Must be capable of evaluating a command, like:
                 - @["sh", "-c"]
                 - @["chroot", "path"]
@@ -77,7 +77,7 @@ type
                 - deepCopy ProcArgs will have little effect on those arguments if they are associated with FileHandle (eg: AsyncFile, AsyncPipe, stdinAsync, etc) because FileHandle is a global value
 
             deepCopy is the way to go to create a new ProcArgs with same argument
-        ]#
+        ]##
 
     LogFn* = proc(res: ProcResult)
 
@@ -96,11 +96,11 @@ type
         logFn*: Option[LogFn]
         onErrorFn*: Option[OnErrorFn]
 
-    #[
+    ##[
         Utility struct to help modify ProcArgs in a API-like way/functional style, while maintaining fine control and explicitness
         env: replace set in ProcArgs
         envModifier: merge with env set in ProcArgs (or if not set, replace it)
-    ]#
+    ]##
     
 let
     sh* = ProcArgs()
