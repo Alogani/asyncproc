@@ -18,8 +18,14 @@ task reinstall, "Reinstalls this package":
     exec("rm -rf " & path)
     exec("nimble install")
 
-task buildDocs, "Build the docs":
+task genDocs, "Build the docs":
     ## importBuilder source code: https://github.com/Alogani/shellcmd-examples/blob/main/src/importbuilder.nim
     let bundlePath = "htmldocs/" & projectName() & ".nim"
-    exec("./importbuilder --build src " & bundlePath & " --discardExports")
+    exec("./htmldocs/importbuilder --build src " & bundlePath & " --discardExports")
     exec("nim doc --project --index:on --outdir:htmldocs " & bundlePath)
+
+task pushSuite, "Tests -> genDocs -> git push":
+    exec("nimble test")
+    genDocsTask()
+    exec("git commit htmldocs/** -m 'Update docs'")
+    exec("git push")
