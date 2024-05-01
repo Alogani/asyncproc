@@ -1,0 +1,5 @@
+nimTitle	procenv	_._/src/asyncproc/exports/procenv.html	module src/asyncproc/exports/procenv		0
+nim	ProcEnv	_._/src/asyncproc/exports/procenv.html#ProcEnv	type ProcEnv		7
+nim	newEmptyEnv	_._/src/asyncproc/exports/procenv.html#newEmptyEnv	proc newEmptyEnv(): ProcEnv		12
+nim	newParentEnv	_._/src/asyncproc/exports/procenv.html#newParentEnv	proc newParentEnv(): ProcEnv		13
+nim	toEnv	_._/src/asyncproc/exports/procenv.html#toEnv.c,Table[string,string]	converter toEnv(table: Table[string, string]): ProcEnv		20

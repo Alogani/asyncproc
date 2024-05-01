@@ -51,6 +51,8 @@ waitFor main()
 
 #### To go further
 
+Full docs can be browsered [here](https://htmlpreview.github.io/?https://github.com/Alogani/asyncproc/blob/main/htmldocs/asyncproc.html)
+
 Please see [tests](https://github.com/Alogani/asyncproc/tree/main/tests) to see more usages.
 
 You can also see [shellcmd](https://github.com/Alogani/shellcmd) source code to view what you can do and how with asyncproc api

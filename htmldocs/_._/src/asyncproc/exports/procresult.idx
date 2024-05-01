@@ -1,0 +1,7 @@
+nimTitle	procresult	_._/src/asyncproc/exports/procresult.html	module src/asyncproc/exports/procresult		0
+nim	ExecError	_._/src/asyncproc/exports/procresult.html#ExecError	type ExecError		6
+nim	ProcResult	_._/src/asyncproc/exports/procresult.html#ProcResult	type ProcResult		8
+nim	OnErrorFn	_._/src/asyncproc/exports/procresult.html#OnErrorFn	type OnErrorFn		17
+nim	assertSuccess	_._/src/asyncproc/exports/procresult.html#assertSuccess,ProcResult	proc assertSuccess(self: ProcResult): ProcResult		19
+nim	merge	_._/src/asyncproc/exports/procresult.html#merge,varargs[ProcResult]	proc merge(allResults: varargs[ProcResult]): ProcResult		20
+nim	withoutLineEnd	_._/src/asyncproc/exports/procresult.html#withoutLineEnd,string	proc withoutLineEnd(s: string): string		21

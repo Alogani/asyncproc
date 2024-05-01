@@ -1,0 +1,26 @@
+nimTitle	procargs	_._/src/asyncproc/exports/procargs.html	module src/asyncproc/exports/procargs		0
+nim	Interactive	_._/src/asyncproc/exports/procargs.html#Interactive	ProcOption.Interactive		15
+nim	QuoteArgs	_._/src/asyncproc/exports/procargs.html#QuoteArgs	ProcOption.QuoteArgs		15
+nim	MergeStderr	_._/src/asyncproc/exports/procargs.html#MergeStderr	ProcOption.MergeStderr		15
+nim	CaptureOutput	_._/src/asyncproc/exports/procargs.html#CaptureOutput	ProcOption.CaptureOutput		15
+nim	CaptureOutputErr	_._/src/asyncproc/exports/procargs.html#CaptureOutputErr	ProcOption.CaptureOutputErr		15
+nim	CaptureInput	_._/src/asyncproc/exports/procargs.html#CaptureInput	ProcOption.CaptureInput		15
+nim	UseParentEnv	_._/src/asyncproc/exports/procargs.html#UseParentEnv	ProcOption.UseParentEnv		15
+nim	Daemon	_._/src/asyncproc/exports/procargs.html#Daemon	ProcOption.Daemon		15
+nim	DryRun	_._/src/asyncproc/exports/procargs.html#DryRun	ProcOption.DryRun		15
+nim	ShowCommand	_._/src/asyncproc/exports/procargs.html#ShowCommand	ProcOption.ShowCommand		15
+nim	AskConfirmation	_._/src/asyncproc/exports/procargs.html#AskConfirmation	ProcOption.AskConfirmation		15
+nim	WithLogging	_._/src/asyncproc/exports/procargs.html#WithLogging	ProcOption.WithLogging		15
+nim	SetEnvOnCmdLine	_._/src/asyncproc/exports/procargs.html#SetEnvOnCmdLine	ProcOption.SetEnvOnCmdLine		15
+nim	KeepStreamOpen	_._/src/asyncproc/exports/procargs.html#KeepStreamOpen	ProcOption.KeepStreamOpen		15
+nim	ProcOption	_._/src/asyncproc/exports/procargs.html#ProcOption	enum ProcOption		15
+nim	ProcArgs	_._/src/asyncproc/exports/procargs.html#ProcArgs	type ProcArgs		52
+nim	LogFn	_._/src/asyncproc/exports/procargs.html#LogFn	type LogFn		82
+nim	ProcArgsModifier	_._/src/asyncproc/exports/procargs.html#ProcArgsModifier	object ProcArgsModifier		84
+nim	sh	_._/src/asyncproc/exports/procargs.html#sh	let sh		106
+nim	internalCmd	_._/src/asyncproc/exports/procargs.html#internalCmd	let internalCmd		107
+nim	deepCopy	_._/src/asyncproc/exports/procargs.html#deepCopy,ProcArgs	proc deepCopy(self: ProcArgs): ProcArgs		112
+nim	merge	_._/src/asyncproc/exports/procargs.html#merge,ProcArgs,ProcArgsModifier	proc merge(procArgs: ProcArgs; modifier: ProcArgsModifier): ProcArgs		119
+nim	merge	_._/src/asyncproc/exports/procargs.html#merge,ProcArgsModifier,ProcArgsModifier	proc merge(a, b: ProcArgsModifier): ProcArgsModifier		144
+nim	merge	_._/src/asyncproc/exports/procargs.html#merge,T,set[ProcOption],set[ProcOption]	proc merge[T: ProcArgs or ProcArgsModifier](a: T; prefixCmd = none(seq[string]);\n                                       toAdd: set[ProcOption] = {};\n                                       toRemove: set[ProcOption] = {};\n                                       input = none(AsyncIoBase);\n                                       output = none(AsyncIoBase);\n                                       outputErr = none(AsyncIoBase);\n                                       env = none(ProcEnv);\n                                       envModifier = none(ProcEnv);\n                                       workingDir = none(string);\n                                       processName = none(string);\n                                       logFn = none(LogFn);\n                                       onErrorFn = none(OnErrorFn)): T		174
+nimgrp	merge	_._/src/asyncproc/exports/procargs.html#merge-procs-all	proc		119

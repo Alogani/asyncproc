@@ -1,0 +1,3 @@
+nimTitle	procmacro	_._/src/asyncproc/exports/procmacro.html	module src/asyncproc/exports/procmacro		0
+nim	tryOrFallBack	_._/src/asyncproc/exports/procmacro.html#tryOrFallBack.m,untyped,untyped	macro tryOrFallBack(cmd: untyped; body: untyped)		14
+nim	implicitAwait	_._/src/asyncproc/exports/procmacro.html#implicitAwait.m,static[seq[string]],untyped	macro implicitAwait(identNames: static[seq[string]]; body: untyped): untyped		55

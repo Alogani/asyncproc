@@ -1,0 +1,17 @@
+nimTitle	streamsbuilder	_._/src/asyncproc/private/streamsbuilder.html	module src/asyncproc/private/streamsbuilder		0
+nim	StreamsBuilder	_._/src/asyncproc/private/streamsbuilder.html#StreamsBuilder	type StreamsBuilder		7
+nim	InteractiveStdin	_._/src/asyncproc/private/streamsbuilder.html#InteractiveStdin	BuilderFlags.InteractiveStdin		14
+nim	InteractiveOut	_._/src/asyncproc/private/streamsbuilder.html#InteractiveOut	BuilderFlags.InteractiveOut		14
+nim	CaptureStdin	_._/src/asyncproc/private/streamsbuilder.html#CaptureStdin	BuilderFlags.CaptureStdin		14
+nim	CaptureStdout	_._/src/asyncproc/private/streamsbuilder.html#CaptureStdout	BuilderFlags.CaptureStdout		14
+nim	CaptureStderr	_._/src/asyncproc/private/streamsbuilder.html#CaptureStderr	BuilderFlags.CaptureStderr		14
+nim	MergeStderr	_._/src/asyncproc/private/streamsbuilder.html#MergeStderr	BuilderFlags.MergeStderr		14
+nim	BuilderFlags	_._/src/asyncproc/private/streamsbuilder.html#BuilderFlags	enum BuilderFlags		14
+nim	init	_._/src/asyncproc/private/streamsbuilder.html#init,typeStreamsBuilder,AsyncIoBase,AsyncIoBase,AsyncIoBase,bool,bool	proc init(T: type StreamsBuilder; stdin, stdout, stderr: AsyncIoBase;\n     keepStreamOpen, mergeStderr: bool): StreamsBuilder		22
+nim	addStreamToStdinChain	_._/src/asyncproc/private/streamsbuilder.html#addStreamToStdinChain,StreamsBuilder,AsyncIoBase	proc addStreamToStdinChain(builder: StreamsBuilder; newStream: AsyncIoBase)		23
+nim	addStreamtoStdout	_._/src/asyncproc/private/streamsbuilder.html#addStreamtoStdout,StreamsBuilder,AsyncIoBase	proc addStreamtoStdout(builder: StreamsBuilder; newStream: AsyncIoBase)		24
+nim	addStreamtoStderr	_._/src/asyncproc/private/streamsbuilder.html#addStreamtoStderr,StreamsBuilder,AsyncIoBase	proc addStreamtoStderr(builder: StreamsBuilder; newStream: AsyncIoBase)		25
+nim	buildToStreams	_._/src/asyncproc/private/streamsbuilder.html#buildToStreams,StreamsBuilder	proc buildToStreams(builder: StreamsBuilder): tuple[\n    streams: tuple[stdin, stdout, stderr: AsyncIoBase],\n    captures: tuple[input, output, outputErr: Future[string]],\n    transferWaiters: seq[Future[void]],\n    closeWhenWaited, closeWhenCapturesFlushed: seq[AsyncIoBase]]		35
+nim	buildToChildFile	_._/src/asyncproc/private/streamsbuilder.html#buildToChildFile,StreamsBuilder,Future[void]	proc buildToChildFile(builder: StreamsBuilder; closeEvent: Future[void]): tuple[\n    stdFiles: tuple[stdin, stdout, stderr: AsyncFile],\n    captures: tuple[input, output, outputErr: Future[string]],\n    transferWaiters: seq[Future[void]],\n    closeWhenWaited, closeWhenCapturesFlushed: seq[AsyncIoBase]]		40
+nim	toPassFds	_._/src/asyncproc/private/streamsbuilder.html#toPassFds,AsyncFile,AsyncFile,AsyncFile	proc toPassFds(stdin, stdout, stderr: AsyncFile): seq[\n    tuple[src: FileHandle, dest: FileHandle]]		47
+nim	nonStandardStdin	_._/src/asyncproc/private/streamsbuilder.html#nonStandardStdin,StreamsBuilder	proc nonStandardStdin(builder: StreamsBuilder): bool		48
