@@ -12,10 +12,10 @@
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4QQQEwksSS9ZWwAAAk1JREFUWMPtll2ITVEUx39nn/O7Y5qR8f05wtCUUr6ZIS++8pEnkZInPImneaCQ5METNdOkeFBKUhMPRIkHKfEuUZSUlGlKPN2TrgfncpvmnntnmlEyq1Z7t89/rf9a6+y99oZxGZf/XeIq61EdtgKXgdXA0xrYAvBjOIF1AI9zvjcC74BSpndrJPkBWDScTF8Aa4E3wDlgHbASaANmVqlcCnwHvgDvgVfAJ+AikAAvgfVZwLnSVZHZaOuKoQi3ZOMi4NkYkpe1p4J7A8BpYAD49hfIy/oqG0+hLomiKP2L5L+1ubn5115S+3OAn4EnwBlgMzCjyt6ZAnQCJ4A7wOs88iRJHvw50HoujuPBoCKwHWiosy8MdfZnAdcHk8dxXFJ3VQbQlCTJvRBCGdRbD4M6uc5glpY3eAihpN5S5w12diSEcCCEcKUO4ljdr15T76ur1FDDLIQQ3qv71EdDOe3Kxj3leRXyk+pxdWnFWod6Wt2bY3de3aSuUHcPBVimHs7mK9WrmeOF6lR1o9qnzskh2ar2qm1qizpfXaPeVGdlmGN5pb09qMxz1Xb1kLqgzn1RyH7JUXW52lr5e/Kqi9qpto7V1atuUzfnARrV7jEib1T76gG2qxdGmXyiekkt1GswPTtek0aBfJp6YySGBfWg2tPQ0FAYgf1stUfdmdcjarbYJEniKIq6gY/Aw+zWHAC+p2labGpqiorFYgGYCEzN7oQdQClN07O1/EfDyGgC0ALMBdYAi4FyK+4H3gLPsxfR1zRNi+NP7nH5J+QntnXe5B5mpfQAAAAASUVORK5CYII=">
 
 <!-- CSS -->
-<link rel="stylesheet" type="text/css" href="../../../../nimdoc.out.css?v=2.0.2">
+<link rel="stylesheet" type="text/css" href="../../../../nimdoc.out.css?v=2.0.4">
 
 <!-- JS -->
-<script type="text/javascript" src="../../../../dochack.js?v=2.0.2"></script>
+<script type="text/javascript" src="../../../../dochack.js?v=2.0.4"></script>
 </head>
 <body>
   <div class="document" id="documentId">
@@ -66,7 +66,23 @@
   onErrorFn*: OnErrorFn
   input*: AsyncIoBase
   output*: AsyncIoBase
-  outputErr*: AsyncIoBase">ProcArgs</a></li>
+  outputErr*: AsyncIoBase ## prefixCmd: command that is put before the actual command being run. Must be capable of evaluating a command, like:
+                          ##     - @[&quot;sh&quot;, &quot;-c&quot;]
+                          ##     - @[&quot;chroot&quot;, &quot;path&quot;]
+                          ##     - @[&quot;ssh, &quot;address&quot;]
+                          ## options: All the high level tweaking available for the childProcess
+                          ## env: if isNone, parent's env will be used, otherwise, will be used even if empty (resulting in no env)
+                          ## processName: the name of the process as it will be available in ps/top commands. Not very useful. Doesn't hide the arguments.
+                          ## logFn: this proc will be called only if appropriate option is set and after childproc have been awaited
+                          ## onErrorFn: this proc will be called if childproc quit with an error code and assertSucces is called (or any function calling it like runAssert, runGetOutput, etc)
+                          ## input, output, outputErr:
+                          ##     - low level arguments to fine tweak child standard streams. Try to use options if possible
+                          ##     - it could be any stream defined in mylib/asyncio
+                          ##     - if closeWhenOver option is set to true and ProcArgs is used multile times, will create a deceptive behaviour (non zero exit on child proc which need streams)
+                          ##     - deepCopy ProcArgs will have little effect on those arguments if they are associated with FileHandle (eg: AsyncFile, AsyncPipe, stdinAsync, etc) because FileHandle is a global value
+                          ## 
+                          ## deepCopy is the way to go to create a new ProcArgs with same argument
+                          ##">ProcArgs</a></li>
 <li><a class="reference" href="#ProcArgsModifier" title="ProcArgsModifier = object
   prefixCmd*: Option[seq[string]]
   toAdd*: set[ProcOption]
@@ -83,7 +99,32 @@
 <li><a class="reference" href="#ProcOption" title="ProcOption = enum
   Interactive, QuoteArgs, MergeStderr, CaptureOutput, CaptureOutputErr,
   CaptureInput, UseParentEnv, Daemon, DryRun, ShowCommand, AskConfirmation,
-  WithLogging, SetEnvOnCmdLine, KeepStreamOpen">ProcOption</a></li>
+  WithLogging, SetEnvOnCmdLine, KeepStreamOpen ## Interactive:
+                                               ##     - First: parent's streams will be added to input/output/outputErr of child
+                                               ##     - This will not affect Capture options.
+                                               ##     - This will not affect that user can also set child input/output/outpterr (which will take priority):
+                                               ##         * if user set input, it will result in AsyncChainReader.new(userInput, stdinAsync)
+                                               ##         * if user set output/outputErr, it will result in AsyncTeeWriter.new(userInput, stdout/stderrAsync)
+                                               ##     - Secondly: it will ensure (on posix) that childproc stdin act as a fake terminal if needed (mandatory for repls like bash, python, etc)
+                                               ##         -&gt; only if custom input has been defined or CaptureInput is set
+                                               ##         -&gt; might not be as stable as using directly stdin
+                                               ##         -&gt; currently not implemented:
+                                               ##             1. Arrow keys
+                                               ##             2. Control keys (ctrl+c, ctrl+z, etc)
+                                               ## QuoteArgs:
+                                               ##     - ensure command arguments are arguments and not code
+                                               ##     - Essential if arguments come from user input
+                                               ##     - If you don't use it, please use quoteShell function to sanitize input
+                                               ##     - Not called if prefixCmd is not set, because posix exec can only accept arguments
+                                               ## MergeStderr:
+                                               ##     - Output and OutputErr will designate the same pipe, ensuring the final output is ordered chronogically
+                                               ##     - Not having outputErr makes error less explicit
+                                               ## Daemon:
+                                               ##     The childproc will not be killed with its parent and continue to live afterwards
+                                               ## SetEnvOnCmdLine (low level option):
+                                               ##     - Instead of giving childProc an environment, it will be given an empty environment
+                                               ##     - And env will be put on commandline. Exemple: @[&quot;ssh&quot;, &quot;user@localhost&quot;, &quot;export MYVAR=MYVAL MYVAR2=MYVAL2; command&quot;]
+                                               ##">ProcOption</a></li>
 
     </ul>
   </details>
@@ -180,8 +221,24 @@
   <span class="Identifier">onErrorFn</span><span class="Operator">*</span><span class="Other">:</span> <a href="procresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a>
   <span class="Identifier">input</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">AsyncIoBase</span>
   <span class="Identifier">output</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">AsyncIoBase</span>
-  <span class="Identifier">outputErr</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">AsyncIoBase</span>
-</pre></dt>
+  <span class="Identifier">outputErr</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">AsyncIoBase</span> <span class="Comment">## prefixCmd: command that is put before the actual command being run. Must be capable of evaluating a command, like:</span>
+                          <span class="Comment">##     - @[&quot;sh&quot;, &quot;-c&quot;]</span>
+                          <span class="Comment">##     - @[&quot;chroot&quot;, &quot;path&quot;]</span>
+                          <span class="Comment">##     - @[&quot;ssh, &quot;address&quot;]</span>
+                          <span class="Comment">## options: All the high level tweaking available for the childProcess</span>
+                          <span class="Comment">## env: if isNone, parent's env will be used, otherwise, will be used even if empty (resulting in no env)</span>
+                          <span class="Comment">## processName: the name of the process as it will be available in ps/top commands. Not very useful. Doesn't hide the arguments.</span>
+                          <span class="Comment">## logFn: this proc will be called only if appropriate option is set and after childproc have been awaited</span>
+                          <span class="Comment">## onErrorFn: this proc will be called if childproc quit with an error code and assertSucces is called (or any function calling it like runAssert, runGetOutput, etc)</span>
+                          <span class="Comment">## input, output, outputErr:</span>
+                          <span class="Comment">##     - low level arguments to fine tweak child standard streams. Try to use options if possible</span>
+                          <span class="Comment">##     - it could be any stream defined in mylib/asyncio</span>
+                          <span class="Comment">##     - if closeWhenOver option is set to true and ProcArgs is used multile times, will create a deceptive behaviour (non zero exit on child proc which need streams)</span>
+                          <span class="Comment">##     - deepCopy ProcArgs will have little effect on those arguments if they are associated with FileHandle (eg: AsyncFile, AsyncPipe, stdinAsync, etc) because FileHandle is a global value</span>
+                          <span class="Comment">## </span>
+                          <span class="Comment">## deepCopy is the way to go to create a new ProcArgs with same argument</span>
+                          <span class="Comment">## </span>
+  </pre></dt>
   <dd>
     
     
@@ -213,7 +270,32 @@
   <dt><pre><a href="procargs.html#ProcOption"><span class="Identifier">ProcOption</span></a> <span class="Other">=</span> <span class="Keyword">enum</span>
   <span class="Identifier">Interactive</span><span class="Other">,</span> <span class="Identifier">QuoteArgs</span><span class="Other">,</span> <span class="Identifier">MergeStderr</span><span class="Other">,</span> <span class="Identifier">CaptureOutput</span><span class="Other">,</span> <span class="Identifier">CaptureOutputErr</span><span class="Other">,</span>
   <span class="Identifier">CaptureInput</span><span class="Other">,</span> <span class="Identifier">UseParentEnv</span><span class="Other">,</span> <span class="Identifier">Daemon</span><span class="Other">,</span> <span class="Identifier">DryRun</span><span class="Other">,</span> <span class="Identifier">ShowCommand</span><span class="Other">,</span> <span class="Identifier">AskConfirmation</span><span class="Other">,</span>
-  <span class="Identifier">WithLogging</span><span class="Other">,</span> <span class="Identifier">SetEnvOnCmdLine</span><span class="Other">,</span> <span class="Identifier">KeepStreamOpen</span></pre></dt>
+  <span class="Identifier">WithLogging</span><span class="Other">,</span> <span class="Identifier">SetEnvOnCmdLine</span><span class="Other">,</span> <span class="Identifier">KeepStreamOpen</span> <span class="Comment">## Interactive:</span>
+                                               <span class="Comment">##     - First: parent's streams will be added to input/output/outputErr of child</span>
+                                               <span class="Comment">##     - This will not affect Capture options.</span>
+                                               <span class="Comment">##     - This will not affect that user can also set child input/output/outpterr (which will take priority):</span>
+                                               <span class="Comment">##         * if user set input, it will result in AsyncChainReader.new(userInput, stdinAsync)</span>
+                                               <span class="Comment">##         * if user set output/outputErr, it will result in AsyncTeeWriter.new(userInput, stdout/stderrAsync)</span>
+                                               <span class="Comment">##     - Secondly: it will ensure (on posix) that childproc stdin act as a fake terminal if needed (mandatory for repls like bash, python, etc)</span>
+                                               <span class="Comment">##         -&gt; only if custom input has been defined or CaptureInput is set</span>
+                                               <span class="Comment">##         -&gt; might not be as stable as using directly stdin</span>
+                                               <span class="Comment">##         -&gt; currently not implemented:</span>
+                                               <span class="Comment">##             1. Arrow keys</span>
+                                               <span class="Comment">##             2. Control keys (ctrl+c, ctrl+z, etc)</span>
+                                               <span class="Comment">## QuoteArgs:</span>
+                                               <span class="Comment">##     - ensure command arguments are arguments and not code</span>
+                                               <span class="Comment">##     - Essential if arguments come from user input</span>
+                                               <span class="Comment">##     - If you don't use it, please use quoteShell function to sanitize input</span>
+                                               <span class="Comment">##     - Not called if prefixCmd is not set, because posix exec can only accept arguments</span>
+                                               <span class="Comment">## MergeStderr:</span>
+                                               <span class="Comment">##     - Output and OutputErr will designate the same pipe, ensuring the final output is ordered chronogically</span>
+                                               <span class="Comment">##     - Not having outputErr makes error less explicit</span>
+                                               <span class="Comment">## Daemon:</span>
+                                               <span class="Comment">##     The childproc will not be killed with its parent and continue to live afterwards</span>
+                                               <span class="Comment">## SetEnvOnCmdLine (low level option):</span>
+                                               <span class="Comment">##     - Instead of giving childProc an environment, it will be given an empty environment</span>
+                                               <span class="Comment">##     - And env will be put on commandline. Exemple: @[&quot;ssh&quot;, &quot;user@localhost&quot;, &quot;export MYVAR=MYVAL MYVAR2=MYVAL2; command&quot;]</span>
+                                               <span class="Comment">## </span></pre></dt>
   <dd>
     
     
@@ -307,7 +389,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2024-05-01 09:18:25 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2024-05-01 10:58:36 UTC</small>
       </div>
     </div>
   </div>
