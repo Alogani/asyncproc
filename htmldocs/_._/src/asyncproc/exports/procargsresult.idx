@@ -1,0 +1,32 @@
+nimTitle	procargsresult	_._/src/asyncproc/exports/procargsresult.html	module src/asyncproc/exports/procargsresult		0
+nim	Interactive	_._/src/asyncproc/exports/procargsresult.html#Interactive	ProcOption.Interactive		14
+nim	QuoteArgs	_._/src/asyncproc/exports/procargsresult.html#QuoteArgs	ProcOption.QuoteArgs		14
+nim	MergeStderr	_._/src/asyncproc/exports/procargsresult.html#MergeStderr	ProcOption.MergeStderr		14
+nim	CaptureOutput	_._/src/asyncproc/exports/procargsresult.html#CaptureOutput	ProcOption.CaptureOutput		14
+nim	CaptureOutputErr	_._/src/asyncproc/exports/procargsresult.html#CaptureOutputErr	ProcOption.CaptureOutputErr		14
+nim	CaptureInput	_._/src/asyncproc/exports/procargsresult.html#CaptureInput	ProcOption.CaptureInput		14
+nim	NoParentEnv	_._/src/asyncproc/exports/procargsresult.html#NoParentEnv	ProcOption.NoParentEnv		14
+nim	Daemon	_._/src/asyncproc/exports/procargsresult.html#Daemon	ProcOption.Daemon		14
+nim	DryRun	_._/src/asyncproc/exports/procargsresult.html#DryRun	ProcOption.DryRun		14
+nim	ShowCommand	_._/src/asyncproc/exports/procargsresult.html#ShowCommand	ProcOption.ShowCommand		14
+nim	AskConfirmation	_._/src/asyncproc/exports/procargsresult.html#AskConfirmation	ProcOption.AskConfirmation		14
+nim	WithLogging	_._/src/asyncproc/exports/procargsresult.html#WithLogging	ProcOption.WithLogging		14
+nim	SetEnvOnCmdLine	_._/src/asyncproc/exports/procargsresult.html#SetEnvOnCmdLine	ProcOption.SetEnvOnCmdLine		14
+nim	KeepStreamOpen	_._/src/asyncproc/exports/procargsresult.html#KeepStreamOpen	ProcOption.KeepStreamOpen		14
+nim	ProcOption	_._/src/asyncproc/exports/procargsresult.html#ProcOption	enum ProcOption		14
+nim	ProcResult	_._/src/asyncproc/exports/procargsresult.html#ProcResult	type ProcResult		48
+nim	ExecError	_._/src/asyncproc/exports/procargsresult.html#ExecError	type ExecError		58
+nim	LogFn	_._/src/asyncproc/exports/procargsresult.html#LogFn	type LogFn		61
+nim	OnErrorFn	_._/src/asyncproc/exports/procargsresult.html#OnErrorFn	type OnErrorFn		62
+nim	ProcArgs	_._/src/asyncproc/exports/procargsresult.html#ProcArgs	type ProcArgs		67
+nim	ProcArgsModifier	_._/src/asyncproc/exports/procargsresult.html#ProcArgsModifier	object ProcArgsModifier		97
+nim	sh	_._/src/asyncproc/exports/procargsresult.html#sh	let sh		119
+nim	internalCmd	_._/src/asyncproc/exports/procargsresult.html#internalCmd	let internalCmd		120
+nim	deepCopy	_._/src/asyncproc/exports/procargsresult.html#deepCopy,ProcArgs	proc deepCopy(self: ProcArgs): ProcArgs		125
+nim	assertSuccess	_._/src/asyncproc/exports/procargsresult.html#assertSuccess,ProcResult	proc assertSuccess(self: ProcResult): ProcResult		128
+nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,varargs[ProcResult]	proc merge(allResults: varargs[ProcResult]): ProcResult		129
+nim	withoutLineEnd	_._/src/asyncproc/exports/procargsresult.html#withoutLineEnd,string	proc withoutLineEnd(s: string): string		130
+nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,ProcArgs,ProcArgsModifier	proc merge(procArgs: ProcArgs; modifier: ProcArgsModifier): ProcArgs		137
+nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,ProcArgsModifier,ProcArgsModifier	proc merge(a, b: ProcArgsModifier): ProcArgsModifier		162
+nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,T,set[ProcOption],set[ProcOption]	proc merge[T: ProcArgs or ProcArgsModifier](a: T; prefixCmd = none(seq[string]);\n                                       toAdd: set[ProcOption] = {};\n                                       toRemove: set[ProcOption] = {};\n                                       input = none(AsyncIoBase);\n                                       output = none(AsyncIoBase);\n                                       outputErr = none(AsyncIoBase);\n                                       env = none(ProcEnv);\n                                       envModifier = none(ProcEnv);\n                                       workingDir = none(string);\n                                       processName = none(string);\n                                       logFn = none(LogFn);\n                                       onErrorFn = none(OnErrorFn)): T		192
+nimgrp	merge	_._/src/asyncproc/exports/procargsresult.html#merge-procs-all	proc		129
