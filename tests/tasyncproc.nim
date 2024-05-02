@@ -4,7 +4,7 @@ import std/[os, sequtils, envvars, strutils]
 
 import std/unittest
 
-var sh = ProcArgs(options: { QuoteArgs, CaptureOutput, CaptureOutputErr })
+var sh = ProcArgs(options: { QuoteArgs, CaptureOutput, CaptureOutputErr, NoParentEnv })
 var shWithPrefix = ProcArgs(prefixCmd: @["sh", "-c"], options: { QuoteArgs, CaptureOutput, CaptureOutputErr })
 var shUnquotedWithPrefix = ProcArgs(prefixCmd: @["sh", "-c"], options: { CaptureOutput, CaptureOutputErr })
 var shMergedStderr = shUnquotedWithPrefix.merge(toAdd = { MergeStderr })
@@ -56,7 +56,7 @@ proc main() {.async.} =
         check getFdCount() == 5
 
     test "environment":
-        var shWithParentEnv = sh.deepCopy().merge(toAdd = { UseParentEnv })
+        var shWithParentEnv = sh.deepCopy().merge(toRemove = { NoParentEnv })
         check (await sh.runGetOutput(@["env"])) == ""
         check (await sh.runGetOutput(@["env"], ProcArgsModifier(env: some {"VAR": "VALUE"}.toTable))) == "VAR=VALUE"
         putEnv("KEY", "VALUE")

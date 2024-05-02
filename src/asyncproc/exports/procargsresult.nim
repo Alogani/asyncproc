@@ -44,6 +44,22 @@ type
             - Instead of giving childProc an environment, it will be given an empty environment
             - And env will be put on commandline. Exemple: @["ssh", "user@localhost", "export MYVAR=MYVAL MYVAR2=MYVAL2; command"]
     ]##
+
+    ProcResult* = ref object
+        cmd*: seq[string]
+        output*: string
+        outputErr*: string
+        input*: string
+        success*: bool
+        exitCode*: int
+        options*: set[ProcOption]
+        onErrorFn: OnErrorFn
+
+    ExecError* = OSError
+    ## ExecError can only be raised when assertSuccess is used (or any run function relying on it)
+
+    LogFn* = proc(res: ProcResult)
+    OnErrorFn* = proc(res: ProcResult): ProcResult
     
 const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, CaptureOutputErr, WithLogging }
 
@@ -97,23 +113,6 @@ type
         - env: replace set in ProcArgs
         - envModifier: merge with env set in ProcArgs (or if not set, replace it)
     ]##
-
-    ProcResult* = ref object
-        cmd*: seq[string]
-        output*: string
-        outputErr*: string
-        input*: string
-        success*: bool
-        exitCode*: int
-        options*: set[ProcOption]
-        onErrorFn: OnErrorFn
-
-    ExecError* = OSError
-    ## ExecError can only be raised when assertSuccess is used (or any run function relying on it)
-
-    LogFn* = proc(res: ProcResult)
-    OnErrorFn* = proc(res: ProcResult): ProcResult
-    
 
 
 let

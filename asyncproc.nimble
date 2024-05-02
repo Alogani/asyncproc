@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.3.1"
+version       = "0.3.2"
 author        = "alogani"
 description   = "Flexible child process spawner with strong async features"
 license       = "MIT"
@@ -24,8 +24,7 @@ task genDocs, "Build the docs":
     exec("./htmldocs/importbuilder --build src " & bundlePath & " --discardExports")
     exec("nim doc --project --index:on --outdir:htmldocs " & bundlePath)
 
-task pushSuite, "Tests -> genDocs -> git push":
-    exec("nimble test")
+task genDocsAndPush, "genDocs -> git push":
     genDocsTask()
     exec("git commit htmldocs/** -m 'Update docs'")
     exec("git push")
