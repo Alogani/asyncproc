@@ -1,5 +1,5 @@
 import std/[macros, asyncdispatch]
-import ./procresult
+import ./procargsresult
 
 #[
     TODO: 
