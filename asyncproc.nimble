@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.3.3"
+version       = "0.3.4"
 author        = "alogani"
 description   = "Flexible child process spawner with strong async features"
 license       = "MIT"
@@ -11,7 +11,8 @@ srcDir        = "src"
 
 requires "nim >= 2.0.2"
 requires "aloganimisc ~= 0.1.1"
-requires "asyncio ~= 0.4.0"
+requires "asyncio ~= 0.4.1"
+requires "asyncsync ~= 0.3.0"
 
 task reinstall, "Reinstalls this package":
     var path = "~/.nimble/pkgs2/" & projectName() & "-" & $version & "-*"
@@ -26,5 +27,6 @@ task genDocs, "Build the docs":
 
 task genDocsAndPush, "genDocs -> git push":
     genDocsTask()
-    exec("git commit htmldocs/** -m 'Update docs'")
+    exec("git add htmldocs")
+    exec("git commit -m 'Update docs'")
     exec("git push")

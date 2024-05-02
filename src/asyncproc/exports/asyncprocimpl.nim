@@ -104,13 +104,13 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
     ## However this function doesn't need to be called to flush process output (automatically done to avoid pipie size limit deadlock)
     ## Raise OsError if cancelFut is triggered
     if not self.childProc.hasExited:
-        if not self.isBeingWaited.isListening():
+        if not self.isBeingWaited.listening():
             addProcess(self.childProc.getPid(), proc(_: AsyncFd): bool {.gcsafe.} =
                 self.isBeingWaited.trigger()
                 return true
             )
         await any(self.isBeingWaited.wait(), cancelFut)
-        if not self.isBeingWaited.isTriggered():
+        if not self.isBeingWaited.triggered():
             raise newException(OsError, "Timeout expired")
     let exitCode = self.childProc.wait()
     await self.afterWaitCleanup()
