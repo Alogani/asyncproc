@@ -2,9 +2,8 @@ import std/[options, strutils]
 import asyncio, asyncio/[asyncpipe]
 import asyncsync, asyncsync/listener
 
-import ./procargs {.all.}
+import ./procargsresult {.all.}
 import ./procenv {.all.}
-import ./procresult {.all.}
 import ../private/streamsbuilder
 
 when defined(windows):
@@ -15,21 +14,20 @@ else:
 
 type
     AsyncProc* = ref object #{.requiresInit.} = ref object
-        # To many ways to provide input/output streams, so no public stdin/stdout accessible
         childProc: ChildProc
         cmd: seq[string]
         logFn: LogFn
+        options: set[ProcOption]
         onErrorFn: OnErrorFn
         captureStreams: tuple[input, output, outputErr: Future[string]]
         closeWhenCapturesFlushed: seq[AsyncIoBase]
         isBeingWaited: Listener
         afterWaitCleanup: proc(): Future[void]
-
-#[
-Used when both Interactive is set and MergeStderr is not set, otherwise:
-    - stdout can appear before stdin has issued a newline
-    - prompt (stderr) can appear before command output
-]#
+    ## It corresponds to the running process. It can be obtained with startProcess
+    ## It must also be waited with wait() to cleanup its resource (opened files, memory, etc.)
+    ## It provides basic process manipulation, like kill/suspend/terminate/running/getPid
+    ## Because this module provides complex IO handling, its standard streams are not accessible and should not be direclty used.
+    ## To manipulate its IO, use input/output/outputErr (be creative with AsyncIo library) and flags from ProcArgs
 
 
 proc askYesNo(sh: ProcArgs, text: string): bool
@@ -46,11 +44,12 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier): Asy
         processName = (if args.processName == "": cmdBuilt[0] else: args.processName)
         env = (
             if SetEnvOnCmdLine in args.options:
+                # Already included on cmdline
                 newEmptyEnv()
-            elif UseParentEnv in args.options:
-                newParentEnv().mergeEnv(args.env)
-            else:
+            elif NoParentEnv in args.options:
                 args.env
+            else:
+                newEnvFromParent().mergeEnv(args.env)
             )
     if AskConfirmation in args.options:
         if not sh.askYesNo("You are about to run following command:\n" &
@@ -81,6 +80,7 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier): Asy
         childProc: childProc,
         cmd: cmdBuilt,
         logFn: if WithLogging in args.options: args.logFn else: nil,
+        options: args.options,
         onErrorFn: args.onErrorFn,
         captureStreams: captures,
         closeWhenCapturesFlushed: closeWhenCapturesFlushed,
@@ -98,7 +98,11 @@ proc start*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd
         processName: processName, logFn: logFn, onErrorFn: onErrorFn))
 
 proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
-    ## Raise error if cancelFut is triggered
+    ## Permits to wait for the subprocess to finish in a async way
+    ## Mandatory to clean up its resource (opened files, memory, etc.) (apart if the process is intended to be a daemon)
+    ## Will not close or kill the subprocess, so it can be a deadlock if subprocess is waiting for input (solution is to close it)
+    ## However this function doesn't need to be called to flush process output (automatically done to avoid pipie size limit deadlock)
+    ## Raise OsError if cancelFut is triggered
     if not self.childProc.hasExited:
         if not self.isBeingWaited.isListening():
             addProcess(self.childProc.getPid(), proc(_: AsyncFd): bool {.gcsafe.} =
@@ -129,10 +133,11 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
                 ""),
         exitCode: exitCode,
         success: exitCode == 0,
+        options: self.options,
     )
+    result.setOnErrorFn(self.onErrorFn) # Private field
     for stream in self.closeWhenCapturesFlushed:
         stream.close()
-    result.setOnErrorFn(self.onErrorFn)
     if self.logFn != nil:
         self.logFn(result)
 
@@ -140,14 +145,15 @@ proc getPid*(p: AsyncProc): int = p.childProc.getPid()
 proc running*(p: AsyncProc): bool = p.childProc.running()
 proc suspend*(p: AsyncProc) = p.childProc.suspend()
 proc resume*(p: AsyncProc) = p.childProc.resume()
-## wait() should be called after terminate to clean up resource
 proc terminate*(p: AsyncProc) = p.childProc.terminate()
-## wait() should be called after kill to clean up resource
+    ## wait() should be called after terminate to clean up resource
 proc kill*(p: AsyncProc) = p.childProc.kill()
+    ## wait() should be called after kill to clean up resource
 
 
 proc run*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
+    ## A sugar to combine `sh.start(...).wait()` in a single call
     await sh.start(cmd, argsModifier).wait(cancelFut)
 
 proc run*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
@@ -161,6 +167,7 @@ proc run*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: 
 
 proc runAssert*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
+    ## A sugar to combine `sh.start(...).wait(...).assertSuccess()` in a single call
     assertSuccess await sh.start(cmd, argsModifier).wait(cancelFut)
 
 proc runAssert*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
@@ -174,6 +181,7 @@ proc runAssert*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), t
 
 proc runDiscard*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[void] {.async.} =
+    ## A sugar to combine `discard sh.start(...).wait(...).assertSuccess()` in a single call
     when defined(release):
         discard assertSuccess await sh.start(cmd,
             argsModifier.merge(toRemove = { CaptureInput, CaptureOutput, CaptureOutputErr })
@@ -195,6 +203,7 @@ proc runDiscard*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), 
 
 proc runCheck*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[bool] {.async.} =
+    ## A sugar to combine `sh.start(...).wait(...).success` in a single call
     await(sh.start(cmd,
         argsModifier.merge(toRemove = (when defined(release):
             { MergeStderr, CaptureInput, CaptureOutputErr }
@@ -214,8 +223,10 @@ proc runCheck*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), to
 
 proc runGetOutput*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[string] {.async.} =
-    ## LineEnd is always stripped, because it is usually unawanted. Use sh.run if this comportement is not wanted
-    ## Ignore MergeStderrOption
+    ## A sugar to combine `withoutLineEnd await sh.runAssert(...).output` in a single call
+    ## - Can raise ExecError if not successful
+    ## - LineEnd is always stripped, because it is usually unawanted. Use sh.run if this comportement is not wanted
+    ## - OutputErr stream is not included (removed in release mode, but captured in debug mode -> only show on error)
     withoutLineEnd (assertSuccess await(sh.start(cmd,
         argsModifier.merge(
             toAdd = { CaptureOutput },
@@ -237,6 +248,9 @@ proc runGetOutput*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string])
 
 proc runGetLines*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[seq[string]] {.async.} =
+    ## A sugar to combine `await splitLines sh.runGetOutput(...)` in a single call
+    ## - Can raise ExecError if not successful
+    ## - OutputErr stream is not included (removed in release mode, but captured in debug mode -> only show on error)
     splitLines withoutLineEnd await sh.runGetOutput(cmd, argsModifier)
 
 proc runGetLines*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
@@ -250,8 +264,10 @@ proc runGetLines*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]),
 
 proc runGetOutputStream*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): (AsyncIoBase, Future[void]) =
-    ## Return also the future to indicate end of subprocess
-    ## Ignore MergeStderrOption
+    ## A sugar doing this: `await splitLines sh.run(..., output = stream)` in a single call
+    ## - Can raise ExecError if not successful
+    ## - Second return value is a future that will be finished when the subprocess has been waited
+    ## - OutputErr stream is not included (removed in release mode, but captured in debug mode -> only show on error)
     var pipe = AsyncPipe.new()
     var finishFut = sh.runDiscard(cmd,
         argsModifier.merge(
@@ -275,8 +291,8 @@ proc runGetOutputStream*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[st
 
 proc runGetStreams*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): (AsyncIoBase, AsyncIoBase, Future[void]) =
-    ## Return also the future to indicate end of subprocess
-    ## Ignore MergeStderr option
+    ## - Similar to runGetOutputStream, but returns both output stream and outputErr stream
+    ## - OutputErr stream is not included (removed in release mode, but captured in debug mode -> only show on error)
     var outputPipe = AsyncPipe.new()
     var outputErrPipe = AsyncPipe.new()
     var finishFut = sh.runDiscard(cmd,
@@ -301,7 +317,7 @@ proc runGetStreams*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]
         processName: processName, logFn: logFn, onErrorFn: onErrorFn), cancelFut)
 
 proc askYesNo(sh: ProcArgs, text: string): bool =
-    # A more complte version is available in myshellcmd/ui
+    # A more complete version is available in myshellcmd/ui
     while true:
         stdout.write(text)
         stdout.write " [sh/y/n]? "

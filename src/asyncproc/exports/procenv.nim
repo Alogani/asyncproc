@@ -10,7 +10,7 @@ type
 
 
 proc newEmptyEnv*(): ProcEnv
-proc newParentEnv*(): ProcEnv
+proc newEnvFromParent*(): ProcEnv
 
 # In other modules:
 proc mergeEnv(first, second: ProcEnv): ProcEnv {.used.}
@@ -23,7 +23,8 @@ converter toEnv*(table: Table[string, string]): ProcEnv =
 proc newEmptyEnv*(): ProcEnv =
     discard
 
-proc newParentEnv*(): ProcEnv =
+proc newEnvFromParent*(): ProcEnv =
+    ## Create an env object filled with parent environment
     ## Can make a the command pretty long if used with SetEnvOnCmdLine flag, but should not cause issue
     for k, v in envPairs():
         result[k] = v

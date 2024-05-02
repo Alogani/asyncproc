@@ -1,7 +1,7 @@
 import std/deques
 import asyncio, asyncio/[asyncpipe, asyncstream, asynchainreader, asynctee, asynciodelayed]
 
-import ../exports/procargs
+import ../exports/procargsresult
 
 type
     StreamsBuilder* = ref object
