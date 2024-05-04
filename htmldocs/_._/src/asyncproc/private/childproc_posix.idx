@@ -1,11 +1,11 @@
 nimTitle	childproc_posix	_._/src/asyncproc/private/childproc_posix.html	module src/asyncproc/private/childproc_posix		0
 nim	ChildProc	_._/src/asyncproc/private/childproc_posix.html#ChildProc	object ChildProc		14
 nim	toChildStream	_._/src/asyncproc/private/childproc_posix.html#toChildStream,StreamsBuilder	proc toChildStream(streamsBuilder: StreamsBuilder): tuple[\n    passFds: seq[tuple[src: FileHandle, dest: FileHandle]],\n    captures: tuple[input, output, outputErr: Future[string]], useFakePty: bool,\n    closeWhenCapturesFlushed: seq[AsyncIoBase], afterSpawn: proc () {.closure.},\n    afterWait: proc (): Future[void] {.closure.}]		55
-nim	wait	_._/src/asyncproc/private/childproc_posix.html#wait,ChildProc	proc wait(p: var ChildProc): int		152
-nim	startProcess	_._/src/asyncproc/private/childproc_posix.html#startProcess,string,seq[string],string	proc startProcess(command: string; args: seq[string]; passFds = defaultPassFds;\n             env = initTable(); workingDir = ""; daemon = false; fakePty = false): ChildProc		181
-nim	getPid	_._/src/asyncproc/private/childproc_posix.html#getPid,ChildProc	proc getPid(p: ChildProc): int		265
-nim	running	_._/src/asyncproc/private/childproc_posix.html#running,ChildProc	proc running(p: var ChildProc): bool		268
-nim	suspend	_._/src/asyncproc/private/childproc_posix.html#suspend,ChildProc	proc suspend(p: ChildProc)		272
-nim	resume	_._/src/asyncproc/private/childproc_posix.html#resume,ChildProc	proc resume(p: ChildProc)		275
-nim	terminate	_._/src/asyncproc/private/childproc_posix.html#terminate,ChildProc	proc terminate(p: ChildProc)		278
-nim	kill	_._/src/asyncproc/private/childproc_posix.html#kill,ChildProc	proc kill(p: ChildProc)		281
+nim	wait	_._/src/asyncproc/private/childproc_posix.html#wait,ChildProc	proc wait(p: var ChildProc): int		154
+nim	startProcess	_._/src/asyncproc/private/childproc_posix.html#startProcess,string,seq[string],string	proc startProcess(command: string; args: seq[string]; passFds = defaultPassFds;\n             env = initTable(); workingDir = ""; daemon = false; fakePty = false): ChildProc		183
+nim	getPid	_._/src/asyncproc/private/childproc_posix.html#getPid,ChildProc	proc getPid(p: ChildProc): int		267
+nim	running	_._/src/asyncproc/private/childproc_posix.html#running,ChildProc	proc running(p: var ChildProc): bool		270
+nim	suspend	_._/src/asyncproc/private/childproc_posix.html#suspend,ChildProc	proc suspend(p: ChildProc)		274
+nim	resume	_._/src/asyncproc/private/childproc_posix.html#resume,ChildProc	proc resume(p: ChildProc)		277
+nim	terminate	_._/src/asyncproc/private/childproc_posix.html#terminate,ChildProc	proc terminate(p: ChildProc)		280
+nim	kill	_._/src/asyncproc/private/childproc_posix.html#kill,ChildProc	proc kill(p: ChildProc)		283

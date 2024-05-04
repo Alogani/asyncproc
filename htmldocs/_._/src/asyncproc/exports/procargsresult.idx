@@ -20,13 +20,13 @@ nim	LogFn	_._/src/asyncproc/exports/procargsresult.html#LogFn	type LogFn		61
 nim	OnErrorFn	_._/src/asyncproc/exports/procargsresult.html#OnErrorFn	type OnErrorFn		62
 nim	ProcArgs	_._/src/asyncproc/exports/procargsresult.html#ProcArgs	type ProcArgs		67
 nim	ProcArgsModifier	_._/src/asyncproc/exports/procargsresult.html#ProcArgsModifier	object ProcArgsModifier		97
-nim	sh	_._/src/asyncproc/exports/procargsresult.html#sh	let sh		119
-nim	internalCmd	_._/src/asyncproc/exports/procargsresult.html#internalCmd	let internalCmd		120
-nim	deepCopy	_._/src/asyncproc/exports/procargsresult.html#deepCopy,ProcArgs	proc deepCopy(self: ProcArgs): ProcArgs		126
-nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,ProcArgs,ProcArgsModifier	proc merge(procArgs: ProcArgs; modifier: ProcArgsModifier): ProcArgs		129
-nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,ProcArgsModifier,ProcArgsModifier	proc merge(a, b: ProcArgsModifier): ProcArgsModifier		154
-nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,T,set[ProcOption],set[ProcOption]	proc merge[T: ProcArgs or ProcArgsModifier](a: T; prefixCmd = none(seq[string]);\n                                       toAdd: set[ProcOption] = {};\n                                       toRemove: set[ProcOption] = {};\n                                       input = none(AsyncIoBase);\n                                       output = none(AsyncIoBase);\n                                       outputErr = none(AsyncIoBase);\n                                       env = none(ProcEnv);\n                                       envModifier = none(ProcEnv);\n                                       workingDir = none(string);\n                                       processName = none(string);\n                                       logFn = none(LogFn);\n                                       onErrorFn = none(OnErrorFn)): T		184
-nim	assertSuccess	_._/src/asyncproc/exports/procargsresult.html#assertSuccess,ProcResult	proc assertSuccess(self: ProcResult): ProcResult		241
-nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,varargs[ProcResult]	proc merge(allResults: varargs[ProcResult]): ProcResult		260
-nim	withoutLineEnd	_._/src/asyncproc/exports/procargsresult.html#withoutLineEnd,string	proc withoutLineEnd(s: string): string		302
-nimgrp	merge	_._/src/asyncproc/exports/procargsresult.html#merge-procs-all	proc		129
+nim	sh	_._/src/asyncproc/exports/procargsresult.html#sh	let sh		122
+nim	internalCmd	_._/src/asyncproc/exports/procargsresult.html#internalCmd	let internalCmd		123
+nim	deepCopy	_._/src/asyncproc/exports/procargsresult.html#deepCopy,ProcArgs	proc deepCopy(self: ProcArgs): ProcArgs		129
+nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,ProcArgs,ProcArgsModifier	proc merge(procArgs: ProcArgs; modifier: ProcArgsModifier): ProcArgs		132
+nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,ProcArgsModifier,ProcArgsModifier	proc merge(a, b: ProcArgsModifier): ProcArgsModifier		157
+nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,T,set[ProcOption],set[ProcOption]	proc merge[T: ProcArgs or ProcArgsModifier](a: T; prefixCmd = none(seq[string]);\n                                       toAdd: set[ProcOption] = {};\n                                       toRemove: set[ProcOption] = {};\n                                       input = none(AsyncIoBase);\n                                       output = none(AsyncIoBase);\n                                       outputErr = none(AsyncIoBase);\n                                       env = none(ProcEnv);\n                                       envModifier = none(ProcEnv);\n                                       workingDir = none(string);\n                                       processName = none(string);\n                                       logFn = none(LogFn);\n                                       onErrorFn = none(OnErrorFn)): T		187
+nim	assertSuccess	_._/src/asyncproc/exports/procargsresult.html#assertSuccess,Future[ProcResult]	proc assertSuccess(res: Future[ProcResult]): Future[ProcResult]		244
+nim	merge	_._/src/asyncproc/exports/procargsresult.html#merge,varargs[ProcResult]	proc merge(allResults: varargs[ProcResult]): ProcResult		266
+nim	withoutLineEnd	_._/src/asyncproc/exports/procargsresult.html#withoutLineEnd,string	proc withoutLineEnd(s: string): string		308
+nimgrp	merge	_._/src/asyncproc/exports/procargsresult.html#merge-procs-all	proc		132
