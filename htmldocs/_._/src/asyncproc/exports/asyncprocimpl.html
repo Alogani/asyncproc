@@ -289,7 +289,9 @@
 
   </div>
   <div class="nine columns" id="content">
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L1" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L1" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
     <div id="tocRoot"></div>
     
     <p class="module-desc"></p>
@@ -308,7 +310,9 @@
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L16" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L16" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -323,7 +327,9 @@
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L144" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L144" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -334,7 +340,9 @@
   <dd>
     
     wait() should be called after kill to clean up resource
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L150" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L150" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -345,7 +353,9 @@
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L147" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L147" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -355,11 +365,14 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#run%2CProcArgs%2Cseq%5Bstring%5D%2CProcArgsModifier%2CFuture%5Bvoid%5D"><span class="Identifier">run</span></a><span class="Other">(</span><span class="Identifier">sh</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a><span class="Other">;</span> <span class="Identifier">cmd</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">;</span>
          <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="procargsresult.html#ProcResult"><span class="Identifier">ProcResult</span></a><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span>
     <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">start</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">wait</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> in a single call
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L155" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L155" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="run,ProcArgs,seq[string],set[ProcOption],set[ProcOption],Future[void]">
@@ -371,11 +384,13 @@
          <span class="Identifier">processName</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">logFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#LogFn"><span class="Identifier">LogFn</span></a><span class="Other">)</span><span class="Other">;</span>
          <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
     <a href="procargsresult.html#ProcResult"><span class="Identifier">ProcResult</span></a><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L159" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L159" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -385,11 +400,14 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#runAssert%2CProcArgs%2Cseq%5Bstring%5D%2CProcArgsModifier%2CFuture%5Bvoid%5D"><span class="Identifier">runAssert</span></a><span class="Other">(</span><span class="Identifier">sh</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a><span class="Other">;</span> <span class="Identifier">cmd</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">;</span>
                <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="procargsresult.html#ProcResult"><span class="Identifier">ProcResult</span></a><span class="Other">]</span> {.
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">start</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">wait</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">assertSuccess</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> in a single call
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L169" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L169" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="runAssert,ProcArgs,seq[string],set[ProcOption],set[ProcOption],Future[void]">
@@ -401,11 +419,13 @@
                <span class="Identifier">processName</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">logFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#LogFn"><span class="Identifier">LogFn</span></a><span class="Other">)</span><span class="Other">;</span>
                <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
     <a href="procargsresult.html#ProcResult"><span class="Identifier">ProcResult</span></a><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L173" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L173" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -415,11 +435,14 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#runCheck%2CProcArgs%2Cseq%5Bstring%5D%2CProcArgsModifier%2CFuture%5Bvoid%5D"><span class="Identifier">runCheck</span></a><span class="Other">(</span><span class="Identifier">sh</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a><span class="Other">;</span> <span class="Identifier">cmd</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">;</span>
               <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span>
     <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">start</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">wait</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">success</span></span></tt> in a single call
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L205" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L205" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="runCheck,ProcArgs,seq[string],set[ProcOption],set[ProcOption],Future[void]">
@@ -430,13 +453,14 @@
               <span class="Identifier">envModifier</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procenv.html#ProcEnv"><span class="Identifier">ProcEnv</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">workingDir</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span>
               <span class="Identifier">processName</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">logFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#LogFn"><span class="Identifier">LogFn</span></a><span class="Other">)</span><span class="Other">;</span>
               <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">bool</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-            <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
-            <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">bool</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span>
+    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L215" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L215" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -446,11 +470,14 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#runDiscard%2CProcArgs%2Cseq%5Bstring%5D%2CProcArgsModifier%2CFuture%5Bvoid%5D"><span class="Identifier">runDiscard</span></a><span class="Other">(</span><span class="Identifier">sh</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a><span class="Other">;</span> <span class="Identifier">cmd</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">;</span>
                 <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> {.
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Keyword">discard</span> <span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">start</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">wait</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">assertSuccess</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> in a single call
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L183" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L183" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="runDiscard,ProcArgs,seq[string],set[ProcOption],set[ProcOption],Future[void]">
@@ -461,13 +488,15 @@
                 <span class="Identifier">envModifier</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procenv.html#ProcEnv"><span class="Identifier">ProcEnv</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">workingDir</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span>
                 <span class="Identifier">processName</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">logFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#LogFn"><span class="Identifier">LogFn</span></a><span class="Other">)</span><span class="Other">;</span>
                 <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">void</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-            <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">void</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+                                        <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
             <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L195" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L195" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -477,14 +506,17 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#runGetLines%2CProcArgs%2Cseq%5Bstring%5D%2CProcArgsModifier%2CFuture%5Bvoid%5D"><span class="Identifier">runGetLines</span></a><span class="Other">(</span><span class="Identifier">sh</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a><span class="Other">;</span> <span class="Identifier">cmd</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">;</span>
                  <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span> {.
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Identifier">await</span> <span class="Identifier">splitLines</span> <span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">runGetOutput</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span></span></tt> in a single call<ul class="simple"><li>Can raise ExecError if not successful</li>
 <li>OutputErr stream is not included (removed in release mode, but captured in debug mode -&gt; only show on error)</li>
 </ul>
 
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L250" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L250" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="runGetLines,ProcArgs,seq[string],set[ProcOption],set[ProcOption],Future[void]">
@@ -496,11 +528,13 @@
                  <span class="Identifier">processName</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">logFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#LogFn"><span class="Identifier">LogFn</span></a><span class="Other">)</span><span class="Other">;</span>
                  <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
     <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L256" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L256" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -509,8 +543,8 @@
   <div id="runGetOutput,ProcArgs,seq[string],ProcArgsModifier,Future[void]">
   <dt><pre><span class="Keyword">proc</span> <a href="#runGetOutput%2CProcArgs%2Cseq%5Bstring%5D%2CProcArgsModifier%2CFuture%5Bvoid%5D"><span class="Identifier">runGetOutput</span></a><span class="Other">(</span><span class="Identifier">sh</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a><span class="Other">;</span> <span class="Identifier">cmd</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span>
                   <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">;</span> <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">string</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-              <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">string</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
               <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
@@ -519,7 +553,9 @@
 <li>OutputErr stream is not included (removed in release mode, but captured in debug mode -&gt; only show on error)</li>
 </ul>
 
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L225" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L225" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="runGetOutput,ProcArgs,seq[string],set[ProcOption],set[ProcOption],Future[void]">
@@ -530,13 +566,14 @@
                   <span class="Identifier">envModifier</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procenv.html#ProcEnv"><span class="Identifier">ProcEnv</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">workingDir</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span>
                   <span class="Identifier">processName</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">logFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#LogFn"><span class="Identifier">LogFn</span></a><span class="Other">)</span><span class="Other">;</span>
                   <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">string</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-              <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
-              <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">string</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span>
+    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L240" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L240" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -547,7 +584,7 @@
                         <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">;</span>
                         <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Other">(</span><span class="Identifier">AsyncIoBase</span><span class="Other">,</span>
     <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     A sugar doing this: <tt class="docutils literal"><span class="pre"><span class="Identifier">await</span> <span class="Identifier">splitLines</span> <span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">run</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">,</span> <span class="Identifier">output</span> <span class="Operator">=</span> <span class="Identifier">stream</span><span class="Punctuation">)</span></span></tt> in a single call<ul class="simple"><li>Can raise ExecError if not successful</li>
@@ -555,7 +592,9 @@
 <li>OutputErr stream is not included (removed in release mode, but captured in debug mode -&gt; only show on error)</li>
 </ul>
 
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L265" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L265" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="runGetOutputStream,ProcArgs,seq[string],set[ProcOption],set[ProcOption],Future[void]">
@@ -570,11 +609,13 @@
                         <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">;</span>
                         <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Other">(</span><span class="Identifier">AsyncIoBase</span><span class="Other">,</span>
     <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L283" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L283" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -584,14 +625,17 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#runGetStreams%2CProcArgs%2Cseq%5Bstring%5D%2CProcArgsModifier%2CFuture%5Bvoid%5D"><span class="Identifier">runGetStreams</span></a><span class="Other">(</span><span class="Identifier">sh</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a><span class="Other">;</span> <span class="Identifier">cmd</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span>
                    <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">;</span> <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Other">(</span>
     <span class="Identifier">AsyncIoBase</span><span class="Other">,</span> <span class="Identifier">AsyncIoBase</span><span class="Other">,</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     <ul class="simple"><li>Similar to runGetOutputStream, but returns both output stream and outputErr stream</li>
 <li>OutputErr stream is not included (removed in release mode, but captured in debug mode -&gt; only show on error)</li>
 </ul>
 
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L292" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L292" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="runGetStreams,ProcArgs,seq[string],set[ProcOption],set[ProcOption],Future[void]">
@@ -604,23 +648,26 @@
                    <span class="Identifier">logFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#LogFn"><span class="Identifier">LogFn</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">;</span>
                    <span class="Identifier">cancelFut</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span class="Other">=</span> <span class="Keyword">nil</span><span class="Other">)</span><span class="Other">:</span> <span class="Other">(</span><span class="Identifier">AsyncIoBase</span><span class="Other">,</span> <span class="Identifier">AsyncIoBase</span><span class="Other">,</span>
     <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L310" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L310" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
 </div>
 <div id="running-procs-all">
   <div id="running,AsyncProc">
-  <dt><pre><span class="Keyword">proc</span> <a href="#running%2CAsyncProc"><span class="Identifier">running</span></a><span class="Other">(</span><span class="Identifier">p</span><span class="Other">:</span> <a href="asyncprocimpl.html#AsyncProc"><span class="Identifier">AsyncProc</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span>
-                                   <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#running%2CAsyncProc"><span class="Identifier">running</span></a><span class="Other">(</span><span class="Identifier">p</span><span class="Other">:</span> <a href="asyncprocimpl.html#AsyncProc"><span class="Identifier">AsyncProc</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L145" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L145" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -628,12 +675,15 @@
 <div id="start-procs-all">
   <div id="start,ProcArgs,seq[string],ProcArgsModifier">
   <dt><pre><span class="Keyword">proc</span> <a href="#start%2CProcArgs%2Cseq%5Bstring%5D%2CProcArgsModifier"><span class="Identifier">start</span></a><span class="Other">(</span><span class="Identifier">sh</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a><span class="Other">;</span> <span class="Identifier">cmd</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">argsModifier</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgsModifier"><span class="Identifier">ProcArgsModifier</span></a><span class="Other">)</span><span class="Other">:</span> <a href="asyncprocimpl.html#AsyncProc"><span class="Identifier">AsyncProc</span></a> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     It is the responsability of the caller to close its end of AsyncStream, AsyncPipe, etc. to avoid deadlocks Some commands will only work well if stdin is connected to a pseudo terminal: if parent is inside a terminal, then don't use CaptureInput, and use either Interactive with stdin = nil or stdin = stdinAsync
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L36" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L36" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 <div id="start,ProcArgs,seq[string],set[ProcOption],set[ProcOption]">
@@ -644,12 +694,15 @@
            <span class="Identifier">envModifier</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procenv.html#ProcEnv"><span class="Identifier">ProcEnv</span></a><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">workingDir</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span>
            <span class="Identifier">processName</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><span class="Identifier">string</span><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">logFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#LogFn"><span class="Identifier">LogFn</span></a><span class="Other">)</span><span class="Other">;</span>
            <span class="Identifier">onErrorFn</span> <span class="Other">=</span> <span class="Identifier">none</span><span class="Other">(</span><a href="procargsresult.html#OnErrorFn"><span class="Identifier">OnErrorFn</span></a><span class="Other">)</span><span class="Other">)</span><span class="Other">:</span> <a href="asyncprocimpl.html#AsyncProc"><span class="Identifier">AsyncProc</span></a> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L91" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L91" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -660,7 +713,9 @@
   <dd>
     
     
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L146" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L146" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -671,7 +726,9 @@
   <dd>
     
     wait() should be called after terminate to clean up resource
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L148" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L148" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -684,7 +741,9 @@
   <dd>
     
     Permits to wait for the subprocess to finish in a async way Mandatory to clean up its resource (opened files, memory, etc.) (apart if the process is intended to be a daemon) Will not close or kill the subprocess, so it can be a deadlock if subprocess is waiting for input (solution is to close it) However this function doesn't need to be called to flush process output (automatically done to avoid pipie size limit deadlock) Raise OsError if cancelFut is triggered
-    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.3.4/src/asyncproc/exports/asyncprocimpl.nim#L100" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L100" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
   </dd>
 </div>
 
@@ -699,7 +758,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2024-05-02 18:25:50 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2024-05-04 09:21:13 UTC</small>
       </div>
     </div>
   </div>
