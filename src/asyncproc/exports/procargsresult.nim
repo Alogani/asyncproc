@@ -59,7 +59,7 @@ type
     ## ExecError can only be raised when assertSuccess is used (or any run function relying on it)
 
     LogFn* = proc(res: ProcResult)
-    OnErrorFn* = proc(res: ProcResult): ProcResult
+    OnErrorFn* = proc(res: ProcResult): Future[ProcResult]
     
 const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, CaptureOutputErr, WithLogging }
 
@@ -241,19 +241,22 @@ proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[string] {.us
     result.add stringCmd
 
 
-proc assertSuccess*(self: ProcResult): ProcResult {.discardable.} =
-    if self.success:
-        return self
-    elif self.onErrorFn != nil:
-        let newProcResult = self.onErrorFn(self)
+proc assertSuccess*(res: Future[ProcResult]): Future[ProcResult] {.async.} =
+    ## If ProcResult is unsuccessful, try to replace it by OnErrorFn callback
+    ## If onErrorFn is unsuccessful or doesn't exists, raise an ExecError
+    let awaitedResult = await res
+    if awaitedResult.success:
+        return awaitedResult
+    elif awaitedResult.onErrorFn != nil:
+        let newProcResult = await awaitedResult.onErrorFn(awaitedResult)
         if newProcResult.success:
             return newProcResult
-    let errData = tail(10, if self.outputErr != "":
-            self.outputErr
+    let errData = tail(10, if awaitedResult.outputErr != "":
+            awaitedResult.outputErr
         else:
-            self.output)
-    raise newException(ExecError, "\nCommand: " & self.cmd.repr() &
-        "\nExitCode: " & $self.exitCode & (if errData == "":
+            awaitedResult.output)
+    raise newException(ExecError, "\nCommand: " & awaitedResult.cmd.repr() &
+        "\nExitCode: " & $awaitedResult.exitCode & (if errData == "":
             ""
         else:
             "\n*** COMMAND DATA TAIL ***\n" & errData &

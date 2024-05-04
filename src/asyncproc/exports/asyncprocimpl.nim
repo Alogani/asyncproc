@@ -168,7 +168,7 @@ proc run*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: 
 proc runAssert*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
     ## A sugar to combine `sh.start(...).wait(...).assertSuccess()` in a single call
-    assertSuccess await sh.start(cmd, argsModifier).wait(cancelFut)
+    await sh.start(cmd, argsModifier).wait(cancelFut).assertSuccess()
 
 proc runAssert*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
         input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
@@ -183,14 +183,14 @@ proc runDiscard*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[void] {.async.} =
     ## A sugar to combine `discard sh.start(...).wait(...).assertSuccess()` in a single call
     when defined(release):
-        discard assertSuccess await sh.start(cmd,
+        discard await sh.start(cmd,
             argsModifier.merge(toRemove = { CaptureInput, CaptureOutput, CaptureOutputErr })
-        ).wait(cancelFut)
+        ).wait(cancelFut).assertSuccess()
     else:
         # Easier debugging
-        discard assertSuccess await sh.start(cmd,
+        discard await sh.start(cmd,
             argsModifier.merge(toRemove = { CaptureInput, CaptureOutput })
-        ).wait(cancelFut)
+        ).wait(cancelFut).assertSuccess()
 
 proc runDiscard*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
         input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
@@ -227,7 +227,7 @@ cancelFut: Future[void] = nil): Future[string] {.async.} =
     ## - Can raise ExecError if not successful
     ## - LineEnd is always stripped, because it is usually unawanted. Use sh.run if this comportement is not wanted
     ## - OutputErr stream is not included (removed in release mode, but captured in debug mode -> only show on error)
-    withoutLineEnd (assertSuccess await(sh.start(cmd,
+    withoutLineEnd await(sh.start(cmd,
         argsModifier.merge(
             toAdd = { CaptureOutput },
             toRemove = (when defined(release):
@@ -235,7 +235,7 @@ cancelFut: Future[void] = nil): Future[string] {.async.} =
             else:
                 { MergeStderr, CaptureInput }
             )
-    )).wait(cancelFut))).output
+    )).wait(cancelFut).assertSuccess()).output
 
 proc runGetOutput*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
         input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
