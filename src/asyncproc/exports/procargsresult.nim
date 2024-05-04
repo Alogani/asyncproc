@@ -12,38 +12,39 @@ export quoteShell, options
 
 type
     ProcOption* = enum
+        ##[
+        ### Interactive
+        * First: parent's streams will be added to input/output/outputErr of child
+            * This will not affect Capture options.
+            * This will not affect that user can also set child input/output/outpterr (which will take priority):
+                * if user set input, it will result in AsyncChainReader.new(userInput, stdinAsync)
+                * if user set output/outputErr, it will result in AsyncTeeWriter.new(userInput, stdout/stderrAsync)
+        * Secondly: it will ensure (on posix) that childproc stdin act as a fake terminal if needed (mandatory for repls like bash, python, etc)
+            - only if custom input has been defined or CaptureInput is set
+            - might not be as stable as using directly stdin
+            
+        ### QuoteArgs
+        - ensure command arguments are arguments and not code
+        - Essential if arguments come from user input
+        - If you don't use it, please use quoteShell function to sanitize input
+        - Not called if prefixCmd is not set, because posix exec can only accept arguments
+
+        ### MergeStderr
+        - Output and OutputErr will designate the same pipe, ensuring the final output is ordered chronogically
+        - Not having outputErr makes error less explicit
+
+        ### Daemon
+        The childproc will not be killed with its parent and continue to live afterwards
+
+        ### SetEnvOnCmdLine (low level option)
+        - Instead of giving childProc an environment, it will be given an empty environment
+        - And env will be put on commandline. eg: `@["ssh", "user@localhost", "export MYVAR=MYVAL MYVAR2=MYVAL2; command"]`
+        ]##
         Interactive, QuoteArgs, MergeStderr,
         CaptureOutput, CaptureOutputErr, CaptureInput,
         NoParentEnv, Daemon, DryRun,
         ShowCommand, AskConfirmation, WithLogging,
         SetEnvOnCmdLine, KeepStreamOpen
-    ##[
-        Interactive:
-            - First: parent's streams will be added to input/output/outputErr of child
-            - This will not affect Capture options.
-            - This will not affect that user can also set child input/output/outpterr (which will take priority):
-                * if user set input, it will result in AsyncChainReader.new(userInput, stdinAsync)
-                * if user set output/outputErr, it will result in AsyncTeeWriter.new(userInput, stdout/stderrAsync)
-            - Secondly: it will ensure (on posix) that childproc stdin act as a fake terminal if needed (mandatory for repls like bash, python, etc)
-                -> only if custom input has been defined or CaptureInput is set
-                -> might not be as stable as using directly stdin
-                -> currently not implemented:
-                    1. Arrow keys
-                    2. Control keys (ctrl+c, ctrl+z, etc)
-        QuoteArgs:
-            - ensure command arguments are arguments and not code
-            - Essential if arguments come from user input
-            - If you don't use it, please use quoteShell function to sanitize input
-            - Not called if prefixCmd is not set, because posix exec can only accept arguments
-        MergeStderr:
-            - Output and OutputErr will designate the same pipe, ensuring the final output is ordered chronogically
-            - Not having outputErr makes error less explicit
-        Daemon:
-            The childproc will not be killed with its parent and continue to live afterwards
-        SetEnvOnCmdLine (low level option):
-            - Instead of giving childProc an environment, it will be given an empty environment
-            - And env will be put on commandline. Exemple: @["ssh", "user@localhost", "export MYVAR=MYVAL MYVAR2=MYVAL2; command"]
-    ]##
 
     ProcResult* = ref object
         cmd*: seq[string]
@@ -65,6 +66,30 @@ const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, Ca
 
 type
     ProcArgs* = ref object
+        ##[
+        ### prefixCmd
+        Command that is put before the actual command being run. Must be capable of evaluating a command, like:
+        - `@["sh", "-c"]`
+        - `@["chroot", "path"]`
+        - `@["ssh, "address"]`
+        ### options
+        All the high level tweaking available for the childProcess
+        ### env
+        If isNone, parent's env will be used, otherwise, will be used even if empty (resulting in no env)
+        ### processName
+        The name of the process as it will be available in ps/top commands. Not very useful. Doesn't hide the arguments.
+        ### logFn
+        This proc will be called only if WithLogging option is set and after childproc have been awaited, no matter if result is success or not
+        ### onErrorFn
+        This proc will be called if childproc quit with an error code and assertSucces is called (or any function calling it like runAssert, runGetOutput, etc)
+        ### input, output, outputErr:
+        - low level arguments to fine tweak child standard streams. Try to use options if possible
+        - it could be any stream defined in mylib/asyncio
+        - if closeWhenOver option is set to true and ProcArgs is used multile times, will create a deceptive behaviour (non zero exit on child proc which need streams)
+        - deepCopy ProcArgs will have little effect on those arguments if they are associated with FileHandle (eg: AsyncFile, AsyncPipe, stdinAsync, etc) because FileHandle is a global value
+
+        deepCopy is the way to go to create a new ProcArgs with same argument
+        ]##
         prefixCmd* = newSeq[string]()
         options* = defaultRunFlags
         env*: ProcEnv
@@ -75,47 +100,28 @@ type
         input*: AsyncIoBase
         output*: AsyncIoBase
         outputErr*: AsyncIoBase
-    ##[
-        - prefixCmd: command that is put before the actual command being run. Must be capable of evaluating a command, like:
-            - @["sh", "-c"]
-            - @["chroot", "path"]
-            - @["ssh, "address"]
-        - options: All the high level tweaking available for the childProcess
-        - env: if isNone, parent's env will be used, otherwise, will be used even if empty (resulting in no env)
-        - processName: the name of the process as it will be available in ps/top commands. Not very useful. Doesn't hide the arguments.
-        - logFn: this proc will be called only if WithLogging option is set and after childproc have been awaited, no matter if result is success or not
-        - onErrorFn: this proc will be called if childproc quit with an error code and assertSucces is called (or any function calling it like runAssert, runGetOutput, etc)
-        - input, output, outputErr:
-            - low level arguments to fine tweak child standard streams. Try to use options if possible
-            - it could be any stream defined in mylib/asyncio
-            - if closeWhenOver option is set to true and ProcArgs is used multile times, will create a deceptive behaviour (non zero exit on child proc which need streams)
-            - deepCopy ProcArgs will have little effect on those arguments if they are associated with FileHandle (eg: AsyncFile, AsyncPipe, stdinAsync, etc) because FileHandle is a global value
-
-        deepCopy is the way to go to create a new ProcArgs with same argument
-    ]##
 
     ProcArgsModifier* = object
+        ##[
+        Utility struct to help modify ProcArgs in a API-like way/functional style, while maintaining fine control and explicitness
+        
+        .. warning:: Option is very picky on the types given
+            - to pass a stream, be sure, to cast it to AsyncIoBase, eg: `some AsyncString.new("data").AsyncIoBase`
+            - to pass a callback, be sure to cast it to the appropriate function, eg: `some LogFn(proc(res: ProcResult) = ...)`
+        ]##
         prefixCmd*: Option[seq[string]]
         toAdd*: set[ProcOption]
         toRemove*: set[ProcOption]
         input*: Option[AsyncIoBase]
         output*: Option[AsyncIoBase]
         outputErr*: Option[AsyncIoBase]
-        env*: Option[ProcEnv]
+        env*: Option[ProcEnv] ## replace the original one
         envModifier*: Option[ProcEnv]
         ## envModifier don't replace the original one, but is merged with it
         workingDir*: Option[string]
         processName*: Option[string]
         logFn*: Option[LogFn]
         onErrorFn*: Option[OnErrorFn]
-    ##[
-        - Utility struct to help modify ProcArgs in a API-like way/functional style, while maintaining fine control and explicitness
-        - env: replace set in ProcArgs
-        - envModifier: merge with env set in ProcArgs (or if not set, replace it)
-        .. warning:: Option is very picky on the types given:
-            - to pass a stream, be sure, to cast it to AsyncIoBase, eg: `some AsyncString.new("data").AsyncIoBase`
-            - to pass a callback, be sure to cast it to the appropriate function, eg: `some LogFn(proc(res: ProcResult) = ...)`
-    ]##
 
 
 let

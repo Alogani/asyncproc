@@ -13,7 +13,12 @@ else:
 
 
 type
-    AsyncProc* = ref object #{.requiresInit.} = ref object
+    AsyncProc* = ref object
+        ## It corresponds to the running process. It can be obtained with startProcess.
+        ## It must also be waited with wait() to cleanup its resource (opened files, memory, etc.).
+        ## It provides basic process manipulation, like kill/suspend/terminate/running/getPid.
+        ## Because this module provides complex IO handling, its standard streams are not accessible and should not be direclty used.
+        ## To manipulate its IO, use input/output/outputErr (be creative with AsyncIo library) and flags from ProcArgs.
         childProc: ChildProc
         cmd: seq[string]
         logFn: LogFn
@@ -23,11 +28,7 @@ type
         closeWhenCapturesFlushed: seq[AsyncIoBase]
         isBeingWaited: Listener
         afterWaitCleanup: proc(): Future[void]
-    ## It corresponds to the running process. It can be obtained with startProcess
-    ## It must also be waited with wait() to cleanup its resource (opened files, memory, etc.)
-    ## It provides basic process manipulation, like kill/suspend/terminate/running/getPid
-    ## Because this module provides complex IO handling, its standard streams are not accessible and should not be direclty used.
-    ## To manipulate its IO, use input/output/outputErr (be creative with AsyncIo library) and flags from ProcArgs
+    
 
 
 proc askYesNo(sh: ProcArgs, text: string): bool
