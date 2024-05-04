@@ -122,14 +122,6 @@ let
         else:
             ProcArgsModifier(toAdd: { CaptureOutputErr }, toRemove: { Interactive, MergeStderr, ShowCommand, CaptureInput, CaptureOutput })
 
-proc deepCopy*(self: ProcArgs): ProcArgs
-proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[string] {.used.}
-
-proc assertSuccess*(self: ProcResult): ProcResult {.discardable.}
-proc merge*(allResults: varargs[ProcResult]): ProcResult
-proc withoutLineEnd*(s: string): string
-proc setOnErrorFn(self: ProcResult, onErrorFn: OnErrorFn) {.used.}
-
 
 proc deepCopy*(self: ProcArgs): ProcArgs =
     deep.deepCopy(result, self)
@@ -220,7 +212,7 @@ proc merge*[T: ProcArgs or ProcArgsModifier](a: T,
         )
     )
 
-proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[string] =
+proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[string] {.used.} =
     if procArgs.prefixCmd.len() == 0:
         if SetEnvOnCmdLine in procArgs.options:
             raise newException(OsError, "Can't apply " & $SetEnvOnCmdLine & " option if not prefixCmd has been given")
@@ -246,7 +238,7 @@ proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[string] =
     result.add stringCmd
 
 
-proc assertSuccess*(self: ProcResult): ProcResult =
+proc assertSuccess*(self: ProcResult): ProcResult {.discardable.} =
     if self.success:
         return self
     elif self.onErrorFn != nil:
@@ -311,5 +303,5 @@ proc withoutLineEnd*(s: string): string =
     result = s
     result.stripLineEnd()
 
-proc setOnErrorFn(self: ProcResult, onErrorFn: OnErrorFn) =
+proc setOnErrorFn(self: ProcResult, onErrorFn: OnErrorFn) {.used.} =
     self.onErrorFn = onErrorFn

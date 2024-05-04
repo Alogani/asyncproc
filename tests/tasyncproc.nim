@@ -1,5 +1,5 @@
 import asyncproc
-import asyncio/asyncstream
+import asyncio
 import std/[os, sequtils, envvars, strutils]
 
 import std/unittest

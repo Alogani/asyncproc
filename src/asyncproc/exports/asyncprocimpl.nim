@@ -1,5 +1,5 @@
 import std/[options, strutils]
-import asyncio, asyncio/[asyncpipe]
+import asyncio
 import asyncsync, asyncsync/listener
 
 import ./procargsresult {.all.}

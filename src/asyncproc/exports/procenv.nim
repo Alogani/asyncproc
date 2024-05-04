@@ -9,14 +9,6 @@ type
         ## Not used to modify terminal env
 
 
-proc newEmptyEnv*(): ProcEnv
-proc newEnvFromParent*(): ProcEnv
-
-# In other modules:
-proc mergeEnv(first, second: ProcEnv): ProcEnv {.used.}
-proc toShellFormat(env: ProcEnv, quoteArgs: bool): string  {.used.}
-
-
 converter toEnv*(table: Table[string, string]): ProcEnv =
     ProcEnv(table)
 
@@ -29,7 +21,7 @@ proc newEnvFromParent*(): ProcEnv =
     for k, v in envPairs():
         result[k] = v
 
-proc mergeEnv(first, second: ProcEnv): ProcEnv =
+proc mergeEnv(first, second: ProcEnv): ProcEnv {.used.} =
     ## Second will overwrite first
     if second.len() == 0:
         return first
@@ -38,7 +30,7 @@ proc mergeEnv(first, second: ProcEnv): ProcEnv =
     for k, v in second.pairs():
         result[k] = v
 
-proc toShellFormat(env: ProcEnv, quoteArgs: bool): string =
+proc toShellFormat(env: ProcEnv, quoteArgs: bool): string {.used.} =
     var exportCmd: string
     if quoteArgs:
         for (key, val) in env.pairs():

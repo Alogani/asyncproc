@@ -1,6 +1,6 @@
 import std/[os, exitprocs, posix, termios, bitops, options]
 import std/[tables, strutils]
-import asyncio, asyncio/[asyncpipe]
+import asyncio
 
 import ./streamsbuilder
 
@@ -25,31 +25,32 @@ const defaultPassFds = @[
 
 var TermiosBackup: Option[Termios]
 
-proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
-    passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
-    captures: tuple[input, output, outputErr: Future[string]],
-    useFakePty: bool,
-    closeWhenCapturesFlushed: seq[AsyncIoBase],
-    afterSpawn: proc() {.closure.},
-    afterWait: proc(): Future[void] {.closure.}
- ]
-proc newPtyPair(): tuple[master, slave: AsyncFile]
-proc newChildTerminalPair(): tuple[master, slave: AsyncFile]
-proc restoreTerminal()
-proc startProcess*(command: string, args: seq[string],
-    passFds = defaultPassFds, env = initTable[string, string](),
-    workingDir = "", daemon = false, fakePty = false): ChildProc
-proc getPid*(p: ChildProc): int
-proc running*(p: var ChildProc): bool
-proc suspend*(p: ChildProc)
-proc resume*(p: ChildProc)
-proc terminate*(p: ChildProc)
-proc kill*(p: ChildProc)
-proc wait*(p: var ChildProc): int
-proc waitImpl(p: var ChildProc, hang: bool)
-proc envToCStringArray(t: Table[string, string]): cstringArray
-proc readAll(fd: FileHandle): string
+proc newPtyPair(): tuple[master, slave: AsyncFile] =
+    var master, slave: cint
+    # default termios param shall be ok
+    if openpty(master, slave, nil, nil, nil) == -1: raiseOSError(osLastError())
+    return (AsyncFile.new(master), AsyncFile.new(slave))
 
+proc restoreTerminal() =
+    if TermiosBackup.isSome():
+        if tcsetattr(STDIN_FILENO, TCSANOW, addr TermiosBackup.get()) == -1:
+            raiseOSError(osLastError())
+
+proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
+    if TermiosBackup.isNone():
+        TermiosBackup = some Termios()
+        if tcGetAttr(STDIN_FILENO, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
+        addExitProc(proc() = restoreTerminal())        
+    var newParentTermios: Termios
+    # Make the parent raw
+    newParentTermios = TermiosBackup.get()
+    newParentTermios.c_lflag.clearMask(ICANON)
+    newParentTermios.c_lflag.clearMask(ISIG)
+    newParentTermios.c_lflag.clearMask(ECHO)
+    newParentTermios.c_cc[VMIN] = 1.char
+    newParentTermios.c_cc[VTIME] = 0.char
+    if tcsetattr(STDIN_FILENO, TCSANOW, addr newParentTermios) == -1: raiseOSError(osLastError())
+    return newPtyPair()
 
 proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
     passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
@@ -133,32 +134,49 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                     s.close()
         )
 
-proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
-    if TermiosBackup.isNone():
-        TermiosBackup = some Termios()
-        if tcGetAttr(STDIN_FILENO, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
-        addExitProc(proc() = restoreTerminal())        
-    var newParentTermios: Termios
-    # Make the parent raw
-    newParentTermios = TermiosBackup.get()
-    newParentTermios.c_lflag.clearMask(ICANON)
-    newParentTermios.c_lflag.clearMask(ISIG)
-    newParentTermios.c_lflag.clearMask(ECHO)
-    newParentTermios.c_cc[VMIN] = 1.char
-    newParentTermios.c_cc[VTIME] = 0.char
-    if tcsetattr(STDIN_FILENO, TCSANOW, addr newParentTermios) == -1: raiseOSError(osLastError())
-    return newPtyPair()
 
-proc newPtyPair(): tuple[master, slave: AsyncFile] =
-    var master, slave: cint
-    # default termios param shall be ok
-    if openpty(master, slave, nil, nil, nil) == -1: raiseOSError(osLastError())
-    return (AsyncFile.new(master), AsyncFile.new(slave))
+proc waitImpl(p: var ChildProc, hang: bool) =
+    if p.hasExited:
+        return
+    var status: cint
+    let errorCode = waitpid(p.pid, status, if hang: 0 else: WNOHANG)
+    if errorCode == p.pid:
+        if WIFEXITED(status) or WIFSIGNALED(status):
+            p.hasExited = true
+            p.exitCode = WEXITSTATUS(status)
+    elif errorCode == 0'i32:
+        discard ## Assume the process is still up and running
+    else:
+        raiseOSError(osLastError())
 
-proc restoreTerminal() =
-    if TermiosBackup.isSome():
-        if tcsetattr(STDIN_FILENO, TCSANOW, addr TermiosBackup.get()) == -1:
-            raiseOSError(osLastError())
+proc wait*(p: var ChildProc): int =
+    ## Without it, the pid won't be recycled
+    ## Block main thread
+    p.waitImpl(true)
+    return p.exitCode    
+
+proc envToCStringArray(t: Table[string, string]): cstringArray =
+    ## from std/osproc
+    result = cast[cstringArray](alloc0((t.len + 1) * sizeof(cstring)))
+    var i = 0
+    for key, val in pairs(t):
+        var x = key & "=" & val
+        result[i] = cast[cstring](alloc(x.len+1))
+        copyMem(result[i], addr(x[0]), x.len+1)
+        inc(i)
+
+proc readAll(fd: FileHandle): string =
+    let bufferSize = 1024
+    result = newString(bufferSize)
+    var totalCount: int
+    while true:
+        let bytesCount = posix.read(fd, addr(result[totalCount]), bufferSize)
+        if bytesCount == 0:
+            break
+        totalCount += bytesCount
+        result.setLen(totalCount + bufferSize)
+    result.setLen(totalCount)
+
 
 proc startProcess*(command: string, args: seq[string],
 passFds = defaultPassFds, env = initTable[string, string](),
@@ -263,44 +281,3 @@ proc terminate*(p: ChildProc) =
 proc kill*(p: ChildProc) =
     if posix.kill(p.pid, SIGKILL) != 0'i32: raiseOSError(osLastError())
 
-proc wait*(p: var ChildProc): int =
-    ## Without it, the pid won't be recycled
-    ## Block main thread
-    p.waitImpl(true)
-    return p.exitCode    
-
-proc waitImpl(p: var ChildProc, hang: bool) =
-    if p.hasExited:
-        return
-    var status: cint
-    let errorCode = waitpid(p.pid, status, if hang: 0 else: WNOHANG)
-    if errorCode == p.pid:
-        if WIFEXITED(status) or WIFSIGNALED(status):
-            p.hasExited = true
-            p.exitCode = WEXITSTATUS(status)
-    elif errorCode == 0'i32:
-        discard ## Assume the process is still up and running
-    else:
-        raiseOSError(osLastError())
-
-proc envToCStringArray(t: Table[string, string]): cstringArray =
-    ## from std/osproc
-    result = cast[cstringArray](alloc0((t.len + 1) * sizeof(cstring)))
-    var i = 0
-    for key, val in pairs(t):
-        var x = key & "=" & val
-        result[i] = cast[cstring](alloc(x.len+1))
-        copyMem(result[i], addr(x[0]), x.len+1)
-        inc(i)
-
-proc readAll(fd: FileHandle): string =
-    let bufferSize = 1024
-    result = newString(bufferSize)
-    var totalCount: int
-    while true:
-        let bytesCount = posix.read(fd, addr(result[totalCount]), bufferSize)
-        if bytesCount == 0:
-            break
-        totalCount += bytesCount
-        result.setLen(totalCount + bufferSize)
-    result.setLen(totalCount)
