@@ -123,9 +123,11 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
             useFakePty: false,
             closeWhenCapturesFlushed: closeWhenCapturesFlushed,
             afterSpawn: (proc() =
-                if stdFiles.stdin != nil: stdFiles.stdin.close()
-                if stdFiles.stdout != nil: stdFiles.stdout.close()
-                if stdFiles.stderr != nil: stdFiles.stderr.close()
+                for stream in [stdFiles.stdin, stdFiles.stdout, stdFiles.stderr]:
+                    let streamIdx = closeWhenWaited.find(stream)
+                    if streamIdx != -1:
+                        closeWhenWaited[streamIdx].close()
+                        closeWhenWaited.del(streamIdx)
             ),
             afterWait: proc(): Future[void] {.async.} =
                 closeEvent.complete()
