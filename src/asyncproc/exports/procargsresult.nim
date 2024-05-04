@@ -112,6 +112,9 @@ type
         - Utility struct to help modify ProcArgs in a API-like way/functional style, while maintaining fine control and explicitness
         - env: replace set in ProcArgs
         - envModifier: merge with env set in ProcArgs (or if not set, replace it)
+        .. warning:: Option is very picky on the types given:
+            - to pass a stream, be sure, to cast it to AsyncIoBase, eg: `some AsyncString.new("data").AsyncIoBase`
+            - to pass a callback, be sure to cast it to the appropriate function, eg: `some LogFn(proc(res: ProcResult) = ...)`
     ]##
 
 
