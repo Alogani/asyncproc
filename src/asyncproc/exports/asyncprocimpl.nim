@@ -1,6 +1,6 @@
 import std/[options, strutils]
 import asyncio
-import asyncsync, asyncsync/listener
+import asyncsync, asyncsync/osevents
 
 import ./procargsresult {.all.}
 import ./procenv {.all.}
@@ -26,7 +26,7 @@ type
         onErrorFn: OnErrorFn
         captureStreams: tuple[input, output, outputErr: Future[string]]
         closeWhenCapturesFlushed: seq[AsyncIoBase]
-        isBeingWaited: Listener
+        hasExitedEvent: ProcessEvent
         afterWaitCleanup: proc(): Future[void]
     
 
@@ -85,7 +85,6 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier): Asy
         onErrorFn: args.onErrorFn,
         captureStreams: captures,
         closeWhenCapturesFlushed: closeWhenCapturesFlushed,
-        isBeingWaited: Listener.new(),
         afterWaitCleanup: afterWait,
     )
 
@@ -105,13 +104,9 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
     ## However this function doesn't need to be called to flush process output (automatically done to avoid pipie size limit deadlock)
     ## Raise OsError if cancelFut is triggered
     if not self.childProc.hasExited:
-        if not self.isBeingWaited.listening():
-            addProcess(self.childProc.getPid(), proc(_: AsyncFd): bool {.gcsafe.} =
-                self.isBeingWaited.trigger()
-                return true
-            )
-        await any(self.isBeingWaited.wait(), cancelFut)
-        if not self.isBeingWaited.triggered():
+        if self.hasExitedEvent == nil:
+            self.hasExitedEvent = ProcessEvent.new(self.childProc.getPid())
+        if not await self.hasExitedEvent.getFuture().wait(cancelFut):
             raise newException(OsError, "Timeout expired")
     let exitCode = self.childProc.wait()
     await self.afterWaitCleanup()
