@@ -5,6 +5,9 @@ import asyncio
 import ./streamsbuilder
 
 ## SIGINT is ignored in main process, preventing it from being accidentally killed
+## warning..:
+##      when using `nim r program.nim`, program.nim is a child process of choosenim and is catched by choosenim
+##      https://github.com/nim-lang/Nim/issues/23573
 onSignal(SIGINT):
     discard
 
@@ -185,7 +188,8 @@ proc readAll(fd: FileHandle): string =
 
 proc startProcess*(command: string, args: seq[string],
 passFds = defaultPassFds, env = initTable[string, string](),
-workingDir = "", daemon = false, fakePty = false): ChildProc =
+workingDir = "", daemon = false, fakePty = false,
+ignoreInterrupt = false): ChildProc =
     ##[
         ### args
         args[0] should be the process name. Not providing it result in undefined behaviour
@@ -214,6 +218,7 @@ workingDir = "", daemon = false, fakePty = false): ChildProc =
     if pid == 0'i32: # Child
         try:
             var childPid = getCurrentProcessId()
+            # Working dir
             if workingDir.len > 0'i32:
                 setCurrentDir(workingDir)
             # IO handling
@@ -237,6 +242,9 @@ workingDir = "", daemon = false, fakePty = false): ChildProc =
                 let exitCode = prctl(PR_SET_PDEATHSIG, SIGHUP)
                 if exitCode < 0'i32 or getppid() != ppidBeforeFork:
                     exitnow(1)
+            # Misc
+            if ignoreInterrupt:
+                signal(SIGINT, SIG_IGN)
             discard close(errorPipes[1])
         except:
             let errMsg = getCurrentExceptionMsg()

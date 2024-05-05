@@ -77,7 +77,8 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier): Asy
     let (passFds, captures, useFakePty, closeWhenCapturesFlushed, afterSpawn, afterWait) =
         streamsBuilder.toChildStream()
     let childProc = startProcess(cmdBuilt[0], @[processName] & cmdBuilt[1..^1],
-        passFds, env, args.workingDir, Daemon in args.options, fakePty = useFakePty)
+        passFds, env, args.workingDir,
+        Daemon in args.options, fakePty = useFakePty, IgnoreInterrupt in args.options)
     afterSpawn()
     result = AsyncProc(
         childProc: childProc,

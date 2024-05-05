@@ -13,6 +13,18 @@ export quoteShell, options
 type
     ProcOption* = enum
         ##[
+        ### Daemon
+        The childproc will not be killed with its parent and continue to live afterwards
+        
+        ### QuoteArgs
+        - ensure command arguments are arguments and not code
+        - Essential if arguments come from user input
+        - If you don't use it, please use quoteShell function to sanitize input
+        - Not called if prefixCmd is not set, because posix exec can only accept arguments
+
+        ### IgnoreInterrupt (low level option)
+        Ctrl-c (SIGINT on linux) on foreground process (either by using Interactive or input = stdinAsync) will don't kill the process
+
         ### Interactive
         * First: parent's streams will be added to input/output/outputErr of child
             * This will not affect Capture options.
@@ -23,32 +35,25 @@ type
             - only if custom input has been defined or CaptureInput is set
             - might not be as stable as using directly stdin
             
-        ### QuoteArgs
-        - ensure command arguments are arguments and not code
-        - Essential if arguments come from user input
-        - If you don't use it, please use quoteShell function to sanitize input
-        - Not called if prefixCmd is not set, because posix exec can only accept arguments
 
         ### MergeStderr
         - Output and OutputErr will designate the same pipe, ensuring the final output is ordered chronogically
         - Not having outputErr makes error less explicit
 
-        ### Daemon
-        The childproc will not be killed with its parent and continue to live afterwards
+        ### RegisterProcess
+        Put the spawn process in a global variable named RunningProcesses until it is waited. Useful for tracking or global Process manipulation
 
         ### SetEnvOnCmdLine (low level option)
         - Instead of giving childProc an environment, it will be given an empty environment
         - And env will be put on commandline. eg: `@["ssh", "user@localhost", "export MYVAR=MYVAL MYVAR2=MYVAL2; command"]`
-
-        ### RegisterProcess
-        Put the spawn process in a global variable named RunningProcesses until it is waited. Useful for tracking or global Process manipulation
         ]##
-        Interactive, QuoteArgs, MergeStderr,
-        CaptureOutput, CaptureOutputErr, CaptureInput,
-        NoParentEnv, Daemon, DryRun,
-        ShowCommand, AskConfirmation, WithLogging,
-        SetEnvOnCmdLine, KeepStreamOpen
-        RegisterProcess
+        AskConfirmation,
+        CaptureInput,CaptureOutput, CaptureOutputErr,
+        Daemon, DryRun, IgnoreInterrupt, Interactive,
+        KeepStreamOpen, MergeStderr,
+        QuoteArgs, NoParentEnv, RegisterProcess
+        SetEnvOnCmdLine, ShowCommand, WithLogging,
+        
 
 const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, CaptureOutputErr, WithLogging }
 
