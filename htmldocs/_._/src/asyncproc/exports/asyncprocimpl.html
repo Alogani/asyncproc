@@ -61,6 +61,15 @@
 </li>
 <li>
   <details open>
+    <summary><a class="reference reference-toplevel" href="#8" id="58">Vars</a></summary>
+    <ul class="simple simple-toc-section">
+      <li><a class="reference" href="#RunningProcesses" title="RunningProcesses: seq[AsyncProc]">RunningProcesses</a></li>
+
+    </ul>
+  </details>
+</li>
+<li>
+  <details open>
     <summary><a class="reference reference-toplevel" href="#12" id="62">Procs</a></summary>
     <ul class="simple simple-toc-section">
       <ul class="simple nested-toc-section">getPid
@@ -69,6 +78,10 @@
 </ul>
 <ul class="simple nested-toc-section">kill
   <li><a class="reference" href="#kill%2CAsyncProc" title="kill(p: AsyncProc)">kill(p: AsyncProc)</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">pretty
+  <li><a class="reference" href="#pretty%2CAsyncProc" title="pretty(self: AsyncProc): string">pretty(self: AsyncProc): string</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">resume
@@ -289,12 +302,12 @@
 
   </div>
   <div class="nine columns" id="content">
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L1" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L1" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
 <a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L1" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
     <div id="tocRoot"></div>
     
-    <p class="module-desc"></p>
+    <p class="module-desc">RunningProcesses list process that have been spawned with Register flag and have not been waited. Process are listed in order of spawn Process are not guaranted to exist if <tt class="docutils literal"><span class="pre"><span class="Identifier">wait</span></span></tt> has not been called</p>
     <div class="section" id="6">
   <h1><a class="toc-backref" href="#6">Imports</a></h1>
   <dl class="item">
@@ -310,8 +323,24 @@
   <dd>
     
     It corresponds to the running process. It can be obtained with startProcess. It must also be waited with wait() to cleanup its resource (opened files, memory, etc.). It provides basic process manipulation, like kill/suspend/terminate/running/getPid. Because this module provides complex IO handling, its standard streams are not accessible and should not be direclty used. To manipulate its IO, use input/output/outputErr (be creative with AsyncIo library) and flags from ProcArgs.
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L16" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L16" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
 <a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L16" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
+  </dd>
+</div>
+
+  </dl>
+</div>
+<div class="section" id="8">
+  <h1><a class="toc-backref" href="#8">Vars</a></h1>
+  <dl class="item">
+    <div id="RunningProcesses">
+  <dt><pre><a href="asyncprocimpl.html#RunningProcesses"><span class="Identifier">RunningProcesses</span></a><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="asyncprocimpl.html#AsyncProc"><span class="Identifier">AsyncProc</span></a><span class="Other">]</span></pre></dt>
+  <dd>
+    
+    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L31" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L31" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -327,8 +356,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L140" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L140" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L146" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L146" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -340,8 +369,21 @@
   <dd>
     
     wait() should be called after kill to clean up resource
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L146" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L146" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L152" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L152" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
+  </dd>
+</div>
+
+</div>
+<div id="pretty-procs-all">
+  <div id="pretty,AsyncProc">
+  <dt><pre><span class="Keyword">proc</span> <a href="#pretty%2CAsyncProc"><span class="Identifier">pretty</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="asyncprocimpl.html#AsyncProc"><span class="Identifier">AsyncProc</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L155" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L155" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -353,8 +395,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L143" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L143" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L149" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L149" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -370,8 +412,8 @@
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">start</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">wait</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> in a single call
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L151" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L151" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L162" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L162" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -388,8 +430,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L155" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L155" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L166" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L166" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -405,8 +447,8 @@
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">start</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">wait</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">assertSuccess</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> in a single call
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L165" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L165" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L176" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L176" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -423,8 +465,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L169" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L169" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L180" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L180" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -440,8 +482,8 @@
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">start</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">wait</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">success</span></span></tt> in a single call
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L201" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L201" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L212" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L212" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -458,8 +500,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L211" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L211" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L222" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L222" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -475,8 +517,8 @@
   <dd>
     
     A sugar to combine <tt class="docutils literal"><span class="pre"><span class="Keyword">discard</span> <span class="Identifier">sh</span><span class="Operator">.</span><span class="Identifier">start</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">wait</span><span class="Punctuation">(</span><span class="Operator">...</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Identifier">assertSuccess</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> in a single call
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L179" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L179" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L190" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L190" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -494,8 +536,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L191" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L191" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L202" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L202" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -514,8 +556,8 @@
 <li>OutputErr stream is not included (removed in release mode, but captured in debug mode -&gt; only show on error)</li>
 </ul>
 
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L246" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L246" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L257" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L257" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -532,8 +574,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L252" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L252" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L263" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L263" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -553,8 +595,8 @@
 <li>OutputErr stream is not included (removed in release mode, but captured in debug mode -&gt; only show on error)</li>
 </ul>
 
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L221" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L221" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L232" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L232" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -571,8 +613,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L236" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L236" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L247" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L247" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -592,8 +634,8 @@
 <li>OutputErr stream is not included (removed in release mode, but captured in debug mode -&gt; only show on error)</li>
 </ul>
 
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L261" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L261" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L272" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L272" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -613,8 +655,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L279" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L279" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L290" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L290" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -633,8 +675,8 @@
 <li>OutputErr stream is not included (removed in release mode, but captured in debug mode -&gt; only show on error)</li>
 </ul>
 
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L288" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L288" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L299" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L299" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -652,8 +694,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L306" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L306" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L317" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L317" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -665,8 +707,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L141" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L141" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L147" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L147" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -681,8 +723,8 @@
   <dd>
     
     It is the responsability of the caller to close its end of AsyncStream, AsyncPipe, etc. to avoid deadlocks Some commands will only work well if stdin is connected to a pseudo terminal: if parent is inside a terminal, then don't use CaptureInput, and use either Interactive with stdin = nil or stdin = stdinAsync
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L37" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L37" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L39" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L39" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -700,8 +742,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L91" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L91" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L94" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L94" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -713,8 +755,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L142" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L142" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L148" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L148" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -726,8 +768,8 @@
   <dd>
     
     wait() should be called after terminate to clean up resource
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L144" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L144" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L150" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L150" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -741,8 +783,8 @@
   <dd>
     
     Permits to wait for the subprocess to finish in a async way Mandatory to clean up its resource (opened files, memory, etc.) (apart if the process is intended to be a daemon) Will not close or kill the subprocess, so it can be a deadlock if subprocess is waiting for input (solution is to close it) However this function doesn't need to be called to flush process output (automatically done to avoid pipie size limit deadlock) Raise OsError if cancelFut is triggered
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/asyncprocimpl.nim#L100" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L100" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/asyncprocimpl.nim#L103" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/asyncprocimpl.nim#L103" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -758,7 +800,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2024-05-05 08:59:47 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2024-05-05 13:06:37 UTC</small>
       </div>
     </div>
   </div>

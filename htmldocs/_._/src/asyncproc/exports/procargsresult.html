@@ -54,6 +54,7 @@
 <li><a class="reference" id="mergestderr_toc" href="#mergestderr">MergeStderr</a></li>
 <li><a class="reference" id="daemon_toc" href="#daemon">Daemon</a></li>
 <li><a class="reference" id="setenvoncmdline-low-level-option_toc" href="#setenvoncmdline-low-level-option">SetEnvOnCmdLine (low level option)</a></li>
+<li><a class="reference" id="registerprocess_toc" href="#registerprocess">RegisterProcess</a></li>
 </ul><li>
   <a class="reference reference-toplevel" href="#6" id="56">Imports</a>
 </li>
@@ -92,15 +93,16 @@
 <li><a class="reference" href="#ProcOption" title="ProcOption = enum
   Interactive, QuoteArgs, MergeStderr, CaptureOutput, CaptureOutputErr,
   CaptureInput, NoParentEnv, Daemon, DryRun, ShowCommand, AskConfirmation,
-  WithLogging, SetEnvOnCmdLine, KeepStreamOpen">ProcOption</a></li>
+  WithLogging, SetEnvOnCmdLine, KeepStreamOpen, RegisterProcess">ProcOption</a></li>
 <li><a class="reference" href="#ProcResult" title="ProcResult = ref object
+  fullCmd*: seq[string]
   cmd*: seq[string]
   output*: string
   outputErr*: string
   input*: string
   success*: bool
   exitCode*: int
-  options*: set[ProcOption]">ProcResult</a></li>
+  procArgs*: ProcArgs">ProcResult</a></li>
 
     </ul>
   </details>
@@ -129,6 +131,10 @@
 </ul>
 <ul class="simple nested-toc-section">deepCopy
   <li><a class="reference" href="#deepCopy%2CProcArgs" title="deepCopy(self: ProcArgs): ProcArgs">deepCopy(self: ProcArgs): ProcArgs</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">formatErrorMsg
+  <li><a class="reference" href="#formatErrorMsg%2CProcResult" title="formatErrorMsg(procResult: ProcResult): string">formatErrorMsg(procResult: ProcResult): string</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">merge
@@ -160,6 +166,10 @@
                                        onErrorFn = none(OnErrorFn)): T</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">pretty
+  <li><a class="reference" href="#pretty%2CProcResult" title="pretty(procResult: ProcResult): string">pretty(procResult: ProcResult): string</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">withoutLineEnd
   <li><a class="reference" href="#withoutLineEnd%2Cstring" title="withoutLineEnd(s: string): string">withoutLineEnd(s: string): string</a></li>
 
@@ -173,7 +183,7 @@
 
   </div>
   <div class="nine columns" id="content">
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L1" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L1" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
 <a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L1" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
     <div id="tocRoot"></div>
@@ -193,8 +203,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L59" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L59" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L69" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L69" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -203,8 +213,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L62" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L62" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L72" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L72" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -213,8 +223,8 @@
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L63" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L63" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L73" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L73" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -249,8 +259,8 @@
 </ul>
 <p>deepCopy is the way to go to create a new ProcArgs with same argument </p>
 
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L68" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L68" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L75" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L75" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -277,8 +287,8 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
 </ul>
 </div>
 
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L104" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L104" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L111" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L111" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -286,7 +296,7 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dt><pre><a href="procargsresult.html#ProcOption"><span class="Identifier">ProcOption</span></a> <span class="Other">=</span> <span class="Keyword">enum</span>
   <span class="Identifier">Interactive</span><span class="Other">,</span> <span class="Identifier">QuoteArgs</span><span class="Other">,</span> <span class="Identifier">MergeStderr</span><span class="Other">,</span> <span class="Identifier">CaptureOutput</span><span class="Other">,</span> <span class="Identifier">CaptureOutputErr</span><span class="Other">,</span>
   <span class="Identifier">CaptureInput</span><span class="Other">,</span> <span class="Identifier">NoParentEnv</span><span class="Other">,</span> <span class="Identifier">Daemon</span><span class="Other">,</span> <span class="Identifier">DryRun</span><span class="Other">,</span> <span class="Identifier">ShowCommand</span><span class="Other">,</span> <span class="Identifier">AskConfirmation</span><span class="Other">,</span>
-  <span class="Identifier">WithLogging</span><span class="Other">,</span> <span class="Identifier">SetEnvOnCmdLine</span><span class="Other">,</span> <span class="Identifier">KeepStreamOpen</span></pre></dt>
+  <span class="Identifier">WithLogging</span><span class="Other">,</span> <span class="Identifier">SetEnvOnCmdLine</span><span class="Other">,</span> <span class="Identifier">KeepStreamOpen</span><span class="Other">,</span> <span class="Identifier">RegisterProcess</span></pre></dt>
   <dd>
     
     
@@ -319,26 +329,29 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
 <li>And env will be put on commandline. eg: <tt class="docutils literal"><span class="pre"><span class="Operator">@</span><span class="Punctuation">[</span><span class="StringLit">&quot;ssh&quot;</span><span class="Punctuation">,</span> <span class="StringLit">&quot;user@localhost&quot;</span><span class="Punctuation">,</span> <span class="StringLit">&quot;export MYVAR=MYVAL MYVAR2=MYVAL2; command&quot;</span><span class="Punctuation">]</span></span></tt></li>
 </ul>
 
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L14" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<h3><a class="toc-backref" id="registerprocess" href="#registerprocess">RegisterProcess</a></h3><p>Put the spawn process in a global variable named RunningProcesses until it is waited. Useful for tracking or global Process manipulation </p>
+
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L14" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
 <a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L14" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
 <div id="ProcResult">
   <dt><pre><a href="procargsresult.html#ProcResult"><span class="Identifier">ProcResult</span></a> <span class="Other">=</span> <span class="Keyword">ref</span> <span class="Keyword">object</span>
+  <span class="Identifier">fullCmd</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
   <span class="Identifier">cmd</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
   <span class="Identifier">output</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
   <span class="Identifier">outputErr</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
   <span class="Identifier">input</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
   <span class="Identifier">success</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
   <span class="Identifier">exitCode</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">options</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">set</span><span class="Other">[</span><a href="procargsresult.html#ProcOption"><span class="Identifier">ProcOption</span></a><span class="Other">]</span>
+  <span class="Identifier">procArgs</span><span class="Operator">*</span><span class="Other">:</span> <a href="procargsresult.html#ProcArgs"><span class="Identifier">ProcArgs</span></a>
   </pre></dt>
   <dd>
     
-    
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L49" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L49" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    Data structures containing all informations captured. fullCmd includes procArgs.prefixCmd, whereas cmd don't
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L56" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L56" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -354,8 +367,8 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L129" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L129" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L136" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L136" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -366,9 +379,9 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
               <span class="Identifier">processName</span><span class="Other">:</span> <span class="StringLit">&quot;&quot;</span><span class="Other">)</span></pre></dt>
   <dd>
     
-    
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L128" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L128" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    Default ProcArgs object to avoid final user to create a ProcArg. Shall not be modified directly but copied rather
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L135" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L135" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -386,8 +399,8 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dd>
     
     If ProcResult is unsuccessful, try to replace it by OnErrorFn callback If onErrorFn is unsuccessful or doesn't exists, raise an ExecError
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L250" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L250" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L278" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L278" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -399,8 +412,22 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L135" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L135" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L142" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L142" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
+  </dd>
+</div>
+
+</div>
+<div id="formatErrorMsg-procs-all">
+  <div id="formatErrorMsg,ProcResult">
+  <dt><pre><span class="Keyword">proc</span> <a href="#formatErrorMsg%2CProcResult"><span class="Identifier">formatErrorMsg</span></a><span class="Other">(</span><span class="Identifier">procResult</span><span class="Other">:</span> <a href="procargsresult.html#ProcResult"><span class="Identifier">ProcResult</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Convenience method to transform procResult in human readable form Tails errorOutput
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L256" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L256" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -413,8 +440,8 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L163" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L163" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L170" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L170" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -424,8 +451,8 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dd>
     
     Add together captured streams, keep the max exitCode If one result is not a success, all while be unsuccessful But discard following args: options, onErrorFn
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L272" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L272" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L290" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L290" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -435,8 +462,8 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L138" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L138" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L145" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L145" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -450,8 +477,21 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L193" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L193" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L200" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L200" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
+  </dd>
+</div>
+
+</div>
+<div id="pretty-procs-all">
+  <div id="pretty,ProcResult">
+  <dt><pre><span class="Keyword">proc</span> <a href="#pretty%2CProcResult"><span class="Identifier">pretty</span></a><span class="Other">(</span><span class="Identifier">procResult</span><span class="Other">:</span> <a href="procargsresult.html#ProcResult"><span class="Identifier">ProcResult</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    To format it more human readable. Subject to change
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L271" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L271" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -463,8 +503,8 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
   <dd>
     
     
-    <a href="https://github.com/Alogani/asyncio/tree/v0.4.1/src/asyncproc/exports/procargsresult.nim#L314" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L314" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/Alogani/asyncio/tree/v0.4.2/src/asyncproc/exports/procargsresult.nim#L339" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/Alogani/asyncio/edit/devel/src/asyncproc/exports/procargsresult.nim#L339" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
@@ -480,7 +520,7 @@ Option is very picky on the types given<ul class="simple"><li>to pass a stream, 
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2024-05-05 08:59:47 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2024-05-05 13:06:37 UTC</small>
       </div>
     </div>
   </div>
