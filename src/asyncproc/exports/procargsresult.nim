@@ -48,14 +48,15 @@ type
         - And env will be put on commandline. eg: `@["ssh", "user@localhost", "export MYVAR=MYVAL MYVAR2=MYVAL2; command"]`
         ]##
         AskConfirmation,
-        CaptureInput,CaptureOutput, CaptureOutputErr,
+        CaptureInput, CaptureOutput, CaptureOutputErr,
         Daemon, DryRun, IgnoreInterrupt, Interactive,
         KeepStreamOpen, MergeStderr,
-        QuoteArgs, NoParentEnv, RegisterProcess
+        QuoteArgs, NoParentEnv, RegisterProcess,
         SetEnvOnCmdLine, ShowCommand, WithLogging,
-        
 
-const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, CaptureOutputErr, WithLogging }
+
+const defaultRunFlags = {QuoteArgs, ShowCommand, Interactive, CaptureOutput,
+        CaptureOutputErr, WithLogging}
 
 type
     ProcResult* = ref object
@@ -76,7 +77,7 @@ type
 
     LogFn* = proc(res: ProcResult)
     OnErrorFn* = proc(res: ProcResult): Future[ProcResult]
-    
+
     ProcArgs* = ref object
         ##[
         ### prefixCmd
@@ -93,12 +94,15 @@ type
         ### logFn
         This proc will be called only if WithLogging option is set and after childproc have been awaited, no matter if result is success or not
         ### onErrorFn
-        This proc will be called if childproc quit with an error code and assertSucces is called (or any function calling it like runAssert, runGetOutput, etc)
+        This proc will be called if childproc quit with an error code and assertSucces is called
+            (or any function calling it like runAssert, runGetOutput, etc)
         ### input, output, outputErr:
         - low level arguments to fine tweak child standard streams. Try to use options if possible
         - it could be any stream defined in mylib/asyncio
-        - if closeWhenOver option is set to true and ProcArgs is used multile times, will create a deceptive behaviour (non zero exit on child proc which need streams)
-        - deepCopy ProcArgs will have little effect on those arguments if they are associated with FileHandle (eg: AsyncFile, AsyncPipe, stdinAsync, etc) because FileHandle is a global value
+        - if closeWhenOver option is set to true and ProcArgs is used multile times,
+            will create a deceptive behaviour (non zero exit on child proc which need streams)
+        - deepCopy ProcArgs will have little effect on those arguments if they are associated with FileHandle
+            (eg: AsyncFile, AsyncPipe, stdinAsync, etc) because FileHandle is a global value
 
         deepCopy is the way to go to create a new ProcArgs with same argument
         ]##
@@ -139,9 +143,11 @@ type
 let
     sh* = ProcArgs() ## Default ProcArgs object to avoid final user to create a ProcArg. Shall not be modified directly but copied rather
     internalCmd* = when defined(release):
-            ProcArgsModifier(toRemove: { Interactive, MergeStderr, ShowCommand, CaptureInput, CaptureOutput, CaptureOutputErr })
+            ProcArgsModifier(toRemove: {Interactive, MergeStderr, ShowCommand,
+                    CaptureInput, CaptureOutput, CaptureOutputErr})
         else:
-            ProcArgsModifier(toAdd: { CaptureOutputErr }, toRemove: { Interactive, MergeStderr, ShowCommand, CaptureInput, CaptureOutput })
+            ProcArgsModifier(toAdd: {CaptureOutputErr}, toRemove: {Interactive,
+                    MergeStderr, ShowCommand, CaptureInput, CaptureOutput})
     ## A ProcArgsModifier that adjust default flags for unimportant or common commands by suppressing echoing, interactivness and error capture
 
 proc deepCopy*(self: ProcArgs): ProcArgs =
@@ -149,13 +155,16 @@ proc deepCopy*(self: ProcArgs): ProcArgs =
 
 proc merge*(procArgs: ProcArgs, modifier: ProcArgsModifier): ProcArgs =
     ProcArgs(
-        prefixCmd: if modifier.prefixCmd.isSome: modifier.prefixCmd.get() else: procArgs.prefixCmd,
+        prefixCmd: if modifier.prefixCmd.isSome: modifier.prefixCmd.get(
+                ) else: procArgs.prefixCmd,
         options: procArgs.options + modifier.toAdd - modifier.toRemove,
-        input: if modifier.input.isSome: modifier.input.get() else: procArgs.input,
-        output: if modifier.output.isSome: modifier.output.get() else: procArgs.output,
-        outputErr: if modifier.outputErr.isSome: modifier.outputErr.get() else: procArgs.outputErr,
-        env: (
-            if modifier.env.isSome:
+        input: if modifier.input.isSome: modifier.input.get(
+                ) else: procArgs.input,
+        output: if modifier.output.isSome: modifier.output.get(
+                ) else: procArgs.output,
+        outputErr: if modifier.outputErr.isSome: modifier.outputErr.get(
+                ) else: procArgs.outputErr,
+        env: (if modifier.env.isSome:
                 if modifier.envModifier.isSome():
                     mergeEnv(modifier.env.get(), modifier.envModifier.get())
                 else:
@@ -165,11 +174,15 @@ proc merge*(procArgs: ProcArgs, modifier: ProcArgsModifier): ProcArgs =
                     mergeEnv(procArgs.env, modifier.envModifier.get())
                 else:
                     procArgs.env
-        ),
-        workingDir: if modifier.workingDir.isSome: modifier.workingDir.get() else: procArgs.workingDir,
-        processName: if modifier.processName.isSome: modifier.processName.get() else: procArgs.processName,
-        logFn: if modifier.logFn.isSome: modifier.logFn.get() else: procArgs.logFn,
-        onErrorFn: if modifier.onErrorFn.isSome: modifier.onErrorFn.get() else: procArgs.onErrorFn,
+            ),
+        workingDir: if modifier.workingDir.isSome: modifier.workingDir.get(
+                ) else: procArgs.workingDir,
+        processName: if modifier.processName.isSome: modifier.processName.get(
+                ) else: procArgs.processName,
+        logFn: if modifier.logFn.isSome: modifier.logFn.get(
+                ) else: procArgs.logFn,
+        onErrorFn: if modifier.onErrorFn.isSome: modifier.onErrorFn.get(
+                ) else: procArgs.onErrorFn,
     )
 
 proc merge*(a, b: ProcArgsModifier): ProcArgsModifier =
@@ -180,16 +193,14 @@ proc merge*(a, b: ProcArgsModifier): ProcArgsModifier =
         input: if b.input.isSome: b.input else: a.input,
         output: if b.output.isSome: b.output else: a.output,
         outputErr: if b.outputErr.isSome: b.outputErr else: a.outputErr,
-        env: (
-            if b.env.isSome:
+        env: (if b.env.isSome:
                 if a.env.isSome:
                     some(mergeEnv(a.env.get(), b.env.get()))
                 else:
                     b.env
             else:
                 a.env),
-        envModifier: (
-            if b.envModifier.isSome:
+                envModifier: (if b.envModifier.isSome:
                 if a.envModifier.isSome:
                     some(mergeEnv(a.envModifier.get(), b.envModifier.get()))
                 else:
@@ -202,7 +213,7 @@ proc merge*(a, b: ProcArgsModifier): ProcArgsModifier =
         onErrorFn: if b.onErrorFn.isSome: b.onErrorFn else: a.onErrorFn,
     )
 
-proc merge*[T: ProcArgs or ProcArgsModifier](a: T, 
+proc merge*[T: ProcArgs or ProcArgsModifier](a: T,
             prefixCmd = none(seq[string]),
             toAdd: set[ProcOption] = {},
             toRemove: set[ProcOption] = {},
@@ -233,7 +244,8 @@ proc merge*[T: ProcArgs or ProcArgsModifier](a: T,
         )
     )
 
-proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[string] {.used.} =
+proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[
+        string] {.used.} =
     if procArgs.prefixCmd.len() == 0:
         if SetEnvOnCmdLine in procArgs.options:
             raise newException(OsError, "Can't apply " & $SetEnvOnCmdLine & " option if not prefixCmd has been given")
@@ -243,18 +255,17 @@ proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[string] {.us
     var stringCmd: string
     stringCmd.add (
         if SetEnvOnCmdLine in procArgs.options:
-            (if NoParentEnv in procArgs.options:
-                procArgs.env
-            else:
-                newEnvFromParent().mergeEnv(procArgs.env)
-            ).toShellFormat(QuoteArgs in procArgs.options)
-        else: ""
-    )
-    stringCmd.add (
-        if QuoteArgs in procArgs.options:
-            postfixCmd.map(proc(arg: string): string = quoteShell(arg))
+        (if NoParentEnv in procArgs.options:
+            procArgs.env
         else:
-            postfixCmd
+            newEnvFromParent().mergeEnv(procArgs.env)
+        ).toShellFormat(QuoteArgs in procArgs.options)
+    else: ""
+    )
+    stringCmd.add (if QuoteArgs in procArgs.options:
+        postfixCmd.map(proc(arg: string): string = quoteShell(arg))
+    else:
+        postfixCmd
     ).join(" ")
     result.add stringCmd
 
@@ -271,7 +282,7 @@ proc formatErrorMsg*(procResult: ProcResult): string =
         else:
             "\n*** COMMAND DATA TAIL ***\n" & errData.repr() &
             "\n*** END OF DATA ***\n"
-    )
+        )
 
 proc pretty*(procResult: ProcResult): string =
     ## To format it more human readable. Subject to change
@@ -298,7 +309,7 @@ proc merge*(allResults: varargs[ProcResult]): ProcResult =
     ## But discard following args: options, onErrorFn
     result = ProcResult()
     var length: int
-    
+
     length = allResults.len() - 1 # separator
     for i in 0..high(allResults): inc(length, allResults[i].fullCmd.len())
     result.fullCmd = newSeqofCap[string](length)
@@ -313,7 +324,7 @@ proc merge*(allResults: varargs[ProcResult]): ProcResult =
     for i in 1..high(allResults):
         result.cmd.add allResults[i].cmd
         result.cmd.add "\n"
-    
+
     length = allResults.len() - 1 # separator
     for i in 0..high(allResults): inc(length, allResults[i].output.len())
     result.output = newStringOfCap(length)

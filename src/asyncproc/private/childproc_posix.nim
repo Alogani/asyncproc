@@ -14,7 +14,8 @@ onSignal(SIGINT):
 # Library
 var PR_SET_PDEATHSIG {.importc, header: "<sys/prctl.h>".}: cint
 proc prctl(option, argc2: cint): cint {.varargs, header: "<sys/prctl.h>".}
-proc openpty(master, slave: var cint; slave_name: cstring, arg1, arg2: pointer): cint {.importc, header: "<pty.h>".}
+proc openpty(master, slave: var cint; slave_name: cstring; arg1,
+        arg2: pointer): cint {.importc, header: "<pty.h>".}
 
 
 type ChildProc* = object
@@ -45,8 +46,9 @@ proc restoreTerminal() =
 proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
     if TermiosBackup.isNone():
         TermiosBackup = some Termios()
-        if tcGetAttr(STDIN_FILENO, addr TermiosBackup.get()) == -1: raiseOSError(osLastError())
-        addExitProc(proc() = restoreTerminal())        
+        if tcGetAttr(STDIN_FILENO, addr TermiosBackup.get()) ==
+                -1: raiseOSError(osLastError())
+        addExitProc(proc() = restoreTerminal())
     var newParentTermios: Termios
     # Make the parent raw
     newParentTermios = TermiosBackup.get()
@@ -55,16 +57,17 @@ proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
     newParentTermios.c_lflag.clearMask(ECHO)
     newParentTermios.c_cc[VMIN] = 1.char
     newParentTermios.c_cc[VTIME] = 0.char
-    if tcsetattr(STDIN_FILENO, TCSANOW, addr newParentTermios) == -1: raiseOSError(osLastError())
+    if tcsetattr(STDIN_FILENO, TCSANOW, addr newParentTermios) ==
+            -1: raiseOSError(osLastError())
     return newPtyPair()
 
 proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
-    passFds: seq[tuple[src: FileHandle, dest: FileHandle]],
-    captures: tuple[input, output, outputErr: Future[string]],
-    useFakePty: bool,
-    closeWhenCapturesFlushed: seq[AsyncIoBase],
-    afterSpawn: proc() {.closure.},
-    afterWait: proc(): Future[void] {.closure.},
+    passFds: seq[tuple[src: FileHandle; dest: FileHandle]];
+    captures: tuple[input, output, outputErr: Future[string]];
+    useFakePty: bool;
+    closeWhenCapturesFlushed: seq[AsyncIoBase];
+    afterSpawn: proc() {.closure.};
+    afterWait: proc(): Future[void] {.closure.};
  ] =
     if streamsBuilder.nonStandardStdin():
         var (master, slave) = newChildTerminalPair()
@@ -82,11 +85,11 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
                 closeWhenCapturesFlushed: closeWhenCapturesFlushed,
                 afterSpawn: proc() = slave.close(),
                 afterWait: proc(): Future[void] {.async.} =
-                    closeEvent.complete()
-                    await all(transferWaiters)
-                    for s in closeWhenWaited:
-                        s.close()
-                    restoreTerminal()
+                closeEvent.complete()
+                await all(transferWaiters)
+                for s in closeWhenWaited:
+                    s.close()
+                restoreTerminal()
             )
         else:
             var stdoutCapture = AsyncPipe.new()
@@ -96,7 +99,8 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
             streamsBuilder.flags.excl InteractiveOut
             var (streams, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
                 ) = streamsBuilder.buildToStreams()
-            transferWaiters.add (stdoutCapture.transfer(streams.stdout) and stderrCapture.transfer(streams.stderr)).then(proc() {.async.} =
+            transferWaiters.add (stdoutCapture.transfer(streams.stdout) and
+                    stderrCapture.transfer(streams.stderr)).then(proc() {.async.} =
                 await stdoutCapture.clear() and stderrCapture.clear()
                 slave.close()
                 stdoutCapture.close()
@@ -104,46 +108,48 @@ proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
             transferWaiters.add master.transfer(stderrAsync).then(proc() {.async.} = master.close())
             discard streams.stdin.transfer(master, closeEvent)
             return (
-                passFds: toPassFds(slave, stdoutCapture.writer, stderrCapture.writer),
+                passFds: toPassFds(slave, stdoutCapture.writer,
+                        stderrCapture.writer),
                 captures: captures,
                 useFakePty: true,
                 closeWhenCapturesFlushed: closeWhenCapturesFlushed,
                 afterSpawn: (proc() =
-                    stdoutCapture.writer.close()
-                    stderrCapture.writer.close()
-                ),
+                stdoutCapture.writer.close()
+                stderrCapture.writer.close()
+            ),
                 afterWait: proc(): Future[void] {.async.} =
-                    closeEvent.complete()
-                    await all(transferWaiters)
-                    for s in closeWhenWaited:
-                        s.close()
-                    restoreTerminal()
+                closeEvent.complete()
+                await all(transferWaiters)
+                for s in closeWhenWaited:
+                    s.close()
+                restoreTerminal()
             )
     else:
         var closeEvent = newFuture[void]()
         var (stdFiles, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
             ) = streamsBuilder.buildToChildFile(closeEvent)
         return (
-            passFds: toPassFds(stdFiles.stdin, stdFiles.stdout, stdFiles.stderr),
+            passFds: toPassFds(stdFiles.stdin, stdFiles.stdout,
+                    stdFiles.stderr),
             captures: captures,
             useFakePty: false,
             closeWhenCapturesFlushed: closeWhenCapturesFlushed,
             afterSpawn: (proc() =
-                for stream in [stdFiles.stdin, stdFiles.stdout, stdFiles.stderr]:
-                    let streamIdx = closeWhenWaited.find(stream)
-                    if streamIdx != -1:
-                        closeWhenWaited[streamIdx].close()
-                        closeWhenWaited.del(streamIdx)
-            ),
+            for stream in [stdFiles.stdin, stdFiles.stdout, stdFiles.stderr]:
+                let streamIdx = closeWhenWaited.find(stream)
+                if streamIdx != -1:
+                    closeWhenWaited[streamIdx].close()
+                    closeWhenWaited.del(streamIdx)
+        ),
             afterWait: proc(): Future[void] {.async.} =
-                closeEvent.complete()
-                await all(transferWaiters)
-                for s in closeWhenWaited:
-                    s.close()
+            closeEvent.complete()
+            await all(transferWaiters)
+            for s in closeWhenWaited:
+                s.close()
         )
 
 
-proc waitImpl(p: var ChildProc, hang: bool) =
+proc waitImpl(p: var ChildProc; hang: bool) =
     if p.hasExited:
         return
     var status: cint
@@ -161,7 +167,7 @@ proc wait*(p: var ChildProc): int =
     ## Without it, the pid won't be recycled
     ## Block main thread
     p.waitImpl(true)
-    return p.exitCode    
+    return p.exitCode
 
 proc envToCStringArray(t: Table[string, string]): cstringArray =
     ## from std/osproc
@@ -186,9 +192,9 @@ proc readAll(fd: FileHandle): string =
     result.setLen(totalCount)
 
 
-proc startProcess*(command: string, args: seq[string],
-passFds = defaultPassFds, env = initTable[string, string](),
-workingDir = "", daemon = false, fakePty = false,
+proc startProcess*(command: string; args: seq[string];
+passFds = defaultPassFds; env = initTable[string, string]();
+workingDir = ""; daemon = false; fakePty = false;
 ignoreInterrupt = false): ChildProc =
     ##[
         ### args
@@ -226,7 +232,8 @@ ignoreInterrupt = false): ChildProc =
                 if src != dest:
                     let exitCode = dup2(src, dest)
                     if exitCode < 0'i32: raiseOSError(osLastError())
-            for (_, file) in walkDir("/proc/" & $childPid & "/fd/", relative = true):
+            for (_, file) in walkDir("/proc/" & $childPid & "/fd/",
+                    relative = true):
                 let fd = file.parseInt().cint
                 if fd notin fdstoKeep and fd != errorPipes[1]:
                     discard close(fd)
@@ -271,7 +278,7 @@ ignoreInterrupt = false): ChildProc =
     discard close(errorPipes[1])
     var errorMsg = readAll(errorPipes[0])
     discard close(errorPipes[0])
-    if errorMsg.len() != 0: raise newException(OSError, errorMsg)    
+    if errorMsg.len() != 0: raise newException(OSError, errorMsg)
     return ChildProc(pid: pid, hasExited: false)
 
 proc getPid*(p: ChildProc): int =

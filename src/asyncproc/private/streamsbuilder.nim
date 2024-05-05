@@ -21,9 +21,10 @@ let delayedStderrAsync = AsyncIoDelayed.new(stderrAsync, 2)
 
 
 
-proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStreamOpen, mergeStderr: bool): StreamsBuilder =
+proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase;
+        keepStreamOpen, mergeStderr: bool): StreamsBuilder =
     result = StreamsBuilder(
-        flags: (if mergeStderr: { BuilderFlags.MergeStderr } else: {}),
+        flags: (if mergeStderr: {BuilderFlags.MergeStderr} else: {}),
         stdin: stdin,
         stdout: stdout,
         stderr: stderr,
@@ -36,7 +37,7 @@ proc init*(T: type StreamsBuilder; stdin, stdout, stderr: AsyncioBase; keepStrea
         if stderr != nil:
             result.closeWhenWaited.add stderr
 
-proc addStreamToStdinChain*(builder: StreamsBuilder, newStream: AsyncIoBase) =
+proc addStreamToStdinChain*(builder: StreamsBuilder; newStream: AsyncIoBase) =
     if builder.stdin == nil:
         builder.stdin = newStream
     elif builder.stdin == newStream:
@@ -46,7 +47,7 @@ proc addStreamToStdinChain*(builder: StreamsBuilder, newStream: AsyncIoBase) =
     else:
         builder.stdin = AsyncChainReader.new(builder.stdin, newStream)
 
-proc addStreamtoOutImpl(stream: var AsyncIoBase, newStream: AsyncIoBase) =
+proc addStreamtoOutImpl(stream: var AsyncIoBase; newStream: AsyncIoBase) =
     if stream == nil:
         stream = newStream
     elif stream == newStream:
@@ -56,10 +57,10 @@ proc addStreamtoOutImpl(stream: var AsyncIoBase, newStream: AsyncIoBase) =
     else:
         stream = AsyncTeeWriter.new(stream, newStream)
 
-proc addStreamtoStdout*(builder: StreamsBuilder, newStream: AsyncIoBase) =
+proc addStreamtoStdout*(builder: StreamsBuilder; newStream: AsyncIoBase) =
     builder.stdout.addStreamtoOutImpl(newStream)
 
-proc addStreamtoStderr*(builder: StreamsBuilder, newStream: AsyncIoBase) =
+proc addStreamtoStderr*(builder: StreamsBuilder; newStream: AsyncIoBase) =
     builder.stderr.addStreamtoOutImpl(newStream)
 
 proc buildStdinInteractive(builder: StreamsBuilder) =
@@ -69,7 +70,8 @@ proc buildStdinInteractive(builder: StreamsBuilder) =
 
 # Builders must be called in that order
 
-proc buildOutInteractiveImpl(stream: var AsyncIoBase, stdStream, stdStreamDelayed: AsyncIoBase) =
+proc buildOutInteractiveImpl(stream: var AsyncIoBase; stdStream,
+        stdStreamDelayed: AsyncIoBase) =
     if stream == nil:
         stream = stdStreamDelayed
     elif stream == stdStream:
@@ -95,7 +97,8 @@ proc buildStdinCapture(builder: StreamsBuilder): Future[string] =
     builder.closeWhenWaited.add captureIo.writer
     return captureIo.readAll()
 
-proc buildOutCaptureImpl(builder: StreamsBuilder, stream: var AsyncIoBase): Future[string] =
+proc buildOutCaptureImpl(builder: StreamsBuilder;
+        stream: var AsyncIoBase): Future[string] =
     if stream != nil:
         let captureIo = AsyncStream.new()
         if stream of AsyncTeeWriter:
@@ -118,7 +121,8 @@ proc buildStdoutCapture(builder: StreamsBuilder): Future[string] =
 proc buildStderrCapture(builder: StreamsBuilder): Future[string] =
     builder.buildOutCaptureImpl(builder.stderr)
 
-proc buildImpl(builder: StreamsBuilder): tuple[captures: tuple[input, output, outputErr: Future[string]]] =
+proc buildImpl(builder: StreamsBuilder): tuple[captures: tuple[input, output,
+        outputErr: Future[string]]] =
     if InteractiveStdin in builder.flags:
         builder.buildStdinInteractive()
     if InteractiveOut in builder.flags:
@@ -131,9 +135,9 @@ proc buildImpl(builder: StreamsBuilder): tuple[captures: tuple[input, output, ou
         result.captures.outputErr = builder.buildStderrCapture()
 
 proc buildToStreams*(builder: StreamsBuilder): tuple[
-    streams: tuple[stdin, stdout, stderr: AsyncIoBase],
-    captures: tuple[input, output, outputErr: Future[string]],
-    transferWaiters: seq[Future[void]],
+    streams: tuple[stdin, stdout, stderr: AsyncIoBase];
+    captures: tuple[input, output, outputErr: Future[string]];
+    transferWaiters: seq[Future[void]];
     closeWhenWaited, closeWhenCapturesFlushed: seq[AsyncIoBase]
 ] =
     ## Closing is handled internally, so output should not be closed using anything else as toClose return value
@@ -146,7 +150,8 @@ proc buildToStreams*(builder: StreamsBuilder): tuple[
         builder.closeWhenCapturesFlushed
     )
 
-proc buildOutChildFileImpl(builder: StreamsBuilder, stream: AsyncIoBase): AsyncFile =
+proc buildOutChildFileImpl(builder: StreamsBuilder;
+        stream: AsyncIoBase): AsyncFile =
     if stream == nil:
         return nil
     elif stream of AsyncFile:
@@ -159,10 +164,11 @@ proc buildOutChildFileImpl(builder: StreamsBuilder, stream: AsyncIoBase): AsyncF
         builder.closeWhenWaited.add pipe.writer
         return pipe.writer
 
-proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple[
-    stdFiles: tuple[stdin, stdout, stderr: Asyncfile],
-    captures: tuple[input, output, outputErr: Future[string]],
-    transferWaiters: seq[Future[void]],
+proc buildToChildFile*(builder: StreamsBuilder; closeEvent: Future[
+        void]): tuple[
+    stdFiles: tuple[stdin, stdout, stderr: Asyncfile];
+    captures: tuple[input, output, outputErr: Future[string]];
+    transferWaiters: seq[Future[void]];
     closeWhenWaited, closeWhenCapturesFlushed: seq[AsyncIoBase]
 ] =
     let (captures) = builder.buildImpl()
@@ -175,7 +181,8 @@ proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple
             AsyncFile(builder.stdin)
         else:
             var pipe = AsyncPipe.new()
-            builder.transferWaiters.add builder.stdin.transfer(pipe.writer, closeEvent).then(proc() {.async.} =
+            builder.transferWaiters.add builder.stdin.transfer(pipe.writer,
+                    closeEvent).then(proc() {.async.} =
                 pipe.writer.close()
             )
             builder.closeWhenWaited.add pipe.reader
@@ -194,7 +201,8 @@ proc buildToChildFile*(builder: StreamsBuilder, closeEvent: Future[void]): tuple
         builder.closeWhenCapturesFlushed
     )
 
-proc toPassFds*(stdin, stdout, stderr: AsyncFile): seq[tuple[src: FileHandle, dest: FileHandle]] =
+proc toPassFds*(stdin, stdout, stderr: AsyncFile): seq[tuple[src: FileHandle;
+        dest: FileHandle]] =
     if stdin != nil:
         result.add (stdin.fd, 0.FileHandle)
     if stdout != nil:
@@ -204,4 +212,5 @@ proc toPassFds*(stdin, stdout, stderr: AsyncFile): seq[tuple[src: FileHandle, de
 
 proc nonStandardStdin*(builder: StreamsBuilder): bool =
     ## if stdin is open and will not be equal to stdinAsync -> check before any build occurs
-    (InteractiveStdin in builder.flags or builder.stdin == stdinAsync) and CaptureStdin in builder.flags
+    (InteractiveStdin in builder.flags or builder.stdin == stdinAsync) and
+            CaptureStdin in builder.flags
