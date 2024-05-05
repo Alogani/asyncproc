@@ -4,6 +4,9 @@ import asyncio
 
 import ./streamsbuilder
 
+## SIGINT is ignored in main process, preventing it from being accidentally killed
+onSignal(SIGINT):
+    discard
 
 # Library
 var PR_SET_PDEATHSIG {.importc, header: "<sys/prctl.h>".}: cint
@@ -184,15 +187,15 @@ proc startProcess*(command: string, args: seq[string],
 passFds = defaultPassFds, env = initTable[string, string](),
 workingDir = "", daemon = false, fakePty = false): ChildProc =
     ##[
-        args:
-            - args[0] should be the process name. Not providing it result in undefined behaviour
-        env:
-            - if env is nil, use parent process
-        file_descriptors:
-            - parent process is responsible for creating and closing its pipes ends
-        daemonize:
-            if false: will be closed with parent process
-            else: will survive (but no action on fds is done)
+        ### args
+        args[0] should be the process name. Not providing it result in undefined behaviour
+        ### env
+        if env is nil, use parent process
+        ### file_descriptors
+        parent process is responsible for creating and closing its pipes ends
+        ### daemonize
+        if false: will be closed with parent process
+        else: will survive (but no action on fds is done)
     ]##
     var fdstoKeep = newSeq[FileHandle](passFds.len())
     for i in 0..high(passFds):
@@ -213,7 +216,6 @@ workingDir = "", daemon = false, fakePty = false): ChildProc =
             var childPid = getCurrentProcessId()
             if workingDir.len > 0'i32:
                 setCurrentDir(workingDir)
-            
             # IO handling
             for (src, dest) in passFds:
                 if src != dest:
@@ -261,7 +263,7 @@ workingDir = "", daemon = false, fakePty = false): ChildProc =
     discard close(errorPipes[1])
     var errorMsg = readAll(errorPipes[0])
     discard close(errorPipes[0])
-    if errorMsg.len() != 0: raise newException(OSError, errorMsg)
+    if errorMsg.len() != 0: raise newException(OSError, errorMsg)    
     return ChildProc(pid: pid, hasExited: false)
 
 proc getPid*(p: ChildProc): int =

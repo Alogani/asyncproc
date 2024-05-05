@@ -39,21 +39,31 @@ type
         ### SetEnvOnCmdLine (low level option)
         - Instead of giving childProc an environment, it will be given an empty environment
         - And env will be put on commandline. eg: `@["ssh", "user@localhost", "export MYVAR=MYVAL MYVAR2=MYVAL2; command"]`
+
+        ### RegisterProcess
+        Put the spawn process in a global variable named RunningProcesses until it is waited. Useful for tracking or global Process manipulation
         ]##
         Interactive, QuoteArgs, MergeStderr,
         CaptureOutput, CaptureOutputErr, CaptureInput,
         NoParentEnv, Daemon, DryRun,
         ShowCommand, AskConfirmation, WithLogging,
         SetEnvOnCmdLine, KeepStreamOpen
+        RegisterProcess
 
+const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, CaptureOutputErr, WithLogging }
+
+type
     ProcResult* = ref object
+        ## Data structures containing all informations captured.
+        ## fullCmd includes procArgs.prefixCmd, whereas cmd don't
+        fullCmd*: seq[string]
         cmd*: seq[string]
         output*: string
         outputErr*: string
         input*: string
         success*: bool
         exitCode*: int
-        options*: set[ProcOption]
+        procArgs*: ProcArgs
         onErrorFn: OnErrorFn
 
     ExecError* = OSError
@@ -62,9 +72,6 @@ type
     LogFn* = proc(res: ProcResult)
     OnErrorFn* = proc(res: ProcResult): Future[ProcResult]
     
-const defaultRunFlags = { QuoteArgs, ShowCommand, Interactive, CaptureOutput, CaptureOutputErr, WithLogging }
-
-type
     ProcArgs* = ref object
         ##[
         ### prefixCmd
@@ -125,12 +132,12 @@ type
 
 
 let
-    sh* = ProcArgs()
+    sh* = ProcArgs() ## Default ProcArgs object to avoid final user to create a ProcArg. Shall not be modified directly but copied rather
     internalCmd* = when defined(release):
             ProcArgsModifier(toRemove: { Interactive, MergeStderr, ShowCommand, CaptureInput, CaptureOutput, CaptureOutputErr })
         else:
             ProcArgsModifier(toAdd: { CaptureOutputErr }, toRemove: { Interactive, MergeStderr, ShowCommand, CaptureInput, CaptureOutput })
-
+    ## A ProcArgsModifier that adjust default flags for unimportant or common commands by suppressing echoing, interactivness and error capture
 
 proc deepCopy*(self: ProcArgs): ProcArgs =
     deep.deepCopy(result, self)
@@ -246,6 +253,27 @@ proc buildCommand(procArgs: ProcArgs, postfixCmd: seq[string]): seq[string] {.us
     ).join(" ")
     result.add stringCmd
 
+proc formatErrorMsg*(procResult: ProcResult): string =
+    ## Convenience method to transform procResult in human readable form
+    ## Tails errorOutput
+    let errData = tail(10, if procResult.outputErr != "":
+            procResult.outputErr
+        else:
+            procResult.output)
+    return "## ProcResult: " & $procResult.fullCmd &
+        "\nExitCode: " & $procResult.exitCode & (if errData == "":
+            ""
+        else:
+            "\n*** COMMAND DATA TAIL ***\n" & errData.repr() &
+            "\n*** END OF DATA ***\n"
+    )
+
+proc pretty*(procResult: ProcResult): string =
+    ## To format it more human readable. Subject to change
+    return "## ProcResult: " & $procResult.fullCmd &
+        "\n- Input: " & procResult.input.repr() &
+        "\n- Output: " & procResult.output.repr() &
+        "\n- OutputErr: " & procResult.outputErr.repr()
 
 proc assertSuccess*(res: Future[ProcResult]): Future[ProcResult] {.async.} =
     ## If ProcResult is unsuccessful, try to replace it by OnErrorFn callback
@@ -257,17 +285,7 @@ proc assertSuccess*(res: Future[ProcResult]): Future[ProcResult] {.async.} =
         let newProcResult = await awaitedResult.onErrorFn(awaitedResult)
         if newProcResult.success:
             return newProcResult
-    let errData = tail(10, if awaitedResult.outputErr != "":
-            awaitedResult.outputErr
-        else:
-            awaitedResult.output)
-    raise newException(ExecError, "\nCommand: " & awaitedResult.cmd.repr() &
-        "\nExitCode: " & $awaitedResult.exitCode & (if errData == "":
-            ""
-        else:
-            "\n*** COMMAND DATA TAIL ***\n" & errData &
-            "\n*** END OF DATA ***\n"
-    ))
+    raise newException(ExecError, awaitedResult.formatErrorMsg())
 
 proc merge*(allResults: varargs[ProcResult]): ProcResult =
     ## Add together captured streams, keep the max exitCode
@@ -277,6 +295,13 @@ proc merge*(allResults: varargs[ProcResult]): ProcResult =
     var length: int
     
     length = allResults.len() - 1 # separator
+    for i in 0..high(allResults): inc(length, allResults[i].fullCmd.len())
+    result.fullCmd = newSeqofCap[string](length)
+    result.fullCmd.add allResults[0].fullCmd
+    for i in 1..high(allResults):
+        result.fullCmd.add allResults[i].fullCmd
+        result.fullCmd.add "\n"
+
     for i in 0..high(allResults): inc(length, allResults[i].cmd.len())
     result.cmd = newSeqofCap[string](length)
     result.cmd.add allResults[0].cmd

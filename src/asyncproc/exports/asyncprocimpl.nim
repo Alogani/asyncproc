@@ -20,16 +20,18 @@ type
         ## Because this module provides complex IO handling, its standard streams are not accessible and should not be direclty used.
         ## To manipulate its IO, use input/output/outputErr (be creative with AsyncIo library) and flags from ProcArgs.
         childProc: ChildProc
-        cmd: seq[string]
-        logFn: LogFn
-        options: set[ProcOption]
-        onErrorFn: OnErrorFn
+        fullCmd: seq[string] # for debugging purpose
+        cmd: seq[string]  # for debugging purpose
+        procArgs: ProcArgs # for debugging purpose
         captureStreams: tuple[input, output, outputErr: Future[string]]
         closeWhenCapturesFlushed: seq[AsyncIoBase]
         hasExitedEvent: ProcessEvent
         afterWaitCleanup: proc(): Future[void]
     
-
+var RunningProcesses*: seq[AsyncProc]
+## RunningProcesses list process that have been spawned with Register flag and have not been waited.
+## Process are listed in order of spawn
+## Process are not guaranted to exist if `wait` has not been called
 
 proc askYesNo(sh: ProcArgs, text: string): bool
 
@@ -55,11 +57,11 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier): Asy
     if AskConfirmation in args.options:
         if not sh.askYesNo("You are about to run following command:\n" &
                             ">>> " & $cmdBuilt & "\nDo you confirm ?"):
-            return AsyncProc(childProc: ChildProc(), cmd: cmdBuilt)
+            return AsyncProc(childProc: ChildProc(), fullCmd: cmdBuilt, procArgs: args)
     elif ShowCommand in args.options:
         echo ">>> ", cmdBuilt
     if DryRun in args.options:
-        return AsyncProc(childProc: ChildProc(), cmd: cmdBuilt)
+        return AsyncProc(childProc: ChildProc(), fullCmd: cmdBuilt, procArgs: args)
     
     #[ Parent stream incluse logic ]#
     var streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr,
@@ -79,14 +81,15 @@ proc start*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier): Asy
     afterSpawn()
     result = AsyncProc(
         childProc: childProc,
-        cmd: cmdBuilt,
-        logFn: if WithLogging in args.options: args.logFn else: nil,
-        options: args.options,
-        onErrorFn: args.onErrorFn,
+        fullCmd: cmdBuilt,
+        cmd: cmd,
+        procArgs: args,
         captureStreams: captures,
         closeWhenCapturesFlushed: closeWhenCapturesFlushed,
         afterWaitCleanup: afterWait,
     )
+    if RegisterProcess in args.options:
+        RunningProcesses.add result
 
 proc start*(sh: ProcArgs, cmd: seq[string], prefixCmd = none(seq[string]), toAdd: set[ProcOption] = {}, toRemove: set[ProcOption] = {},
         input = none(AsyncIoBase), output = none(AsyncIoBase), outputErr = none(AsyncIoBase),
@@ -109,8 +112,11 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
         if not await self.hasExitedEvent.getFuture().wait(cancelFut):
             raise newException(OsError, "Timeout expired")
     let exitCode = self.childProc.wait()
+    if RegisterProcess in self.procArgs.options:
+        RunningProcesses.delete(RunningProcesses.find(self))
     await self.afterWaitCleanup()
     result = ProcResult(
+        fullCmd: self.fullCmd,
         cmd: self.cmd,
         input:
             (if self.captureStreams.input != nil:
@@ -129,13 +135,13 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[ProcResult] {
                 ""),
         exitCode: exitCode,
         success: exitCode == 0,
-        options: self.options,
+        procArgs: self.procArgs,
     )
-    result.setOnErrorFn(self.onErrorFn) # Private field
+    result.setOnErrorFn(self.procArgs.onErrorFn) # Private field
     for stream in self.closeWhenCapturesFlushed:
         stream.close()
-    if self.logFn != nil:
-        self.logFn(result)
+    if self.procArgs.logFn != nil:
+        self.procArgs.logFn(result)
 
 proc getPid*(p: AsyncProc): int = p.childProc.getPid()
 proc running*(p: AsyncProc): bool = p.childProc.running()
@@ -146,6 +152,11 @@ proc terminate*(p: AsyncProc) = p.childProc.terminate()
 proc kill*(p: AsyncProc) = p.childProc.kill()
     ## wait() should be called after kill to clean up resource
 
+proc pretty*(self: AsyncProc): string =
+    return "## AsyncProcess: " & $self.fullCmd &
+        "\n- Pid: " & $self.getPid() &
+        "\n- Running: " & $self.running() &
+        "\n- Options: " & $self.procArgs.options
 
 proc run*(sh: ProcArgs, cmd: seq[string], argsModifier: ProcArgsModifier,
 cancelFut: Future[void] = nil): Future[ProcResult] {.async.} =
