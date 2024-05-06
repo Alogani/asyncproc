@@ -12,7 +12,7 @@ It was specially built to close the gap from shell language and nim.
   - Can be easily put in true foreground, keeping the ability to terminal process control (ctrl+c, ctrl+z in linux) and to have shell history
   - Can capture input/output/output error streams, even when put on foreground
   - Can separate error stream or keep it merged with preserving writing order
-  - Have other facilities to help logging, printing what is done, managing process environment, making deamons (command surviving its parent), etc.
+  - Have other facilities to help logging, printing what is done, managing process environment, making daemons (command surviving its parent), etc.
 - Powerful streams manipulation thanks to [asyncio](https://github.com/Alogani/asyncio) library
 
 ## Getting started

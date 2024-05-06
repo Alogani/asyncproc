@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.4.2"
+version       = "0.4.3"
 author        = "alogani"
 description   = "Flexible child process spawner with strong async features"
 license       = "MIT"
@@ -11,8 +11,8 @@ srcDir        = "src"
 
 requires "nim >= 2.0.2"
 requires "aloganimisc ~= 0.1.1"
-requires "asyncio ~= 0.6.0"
-requires "asyncsync ~= 0.4.0"
+requires "asyncio ~= 0.6.2"
+requires "asyncsync ~= 0.5.0"
 
 task reinstall, "Reinstalls this package":
     var path = "~/.nimble/pkgs2/" & projectName() & "-*"
