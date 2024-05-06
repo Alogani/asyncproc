@@ -1,7 +1,6 @@
 import std/deques
 import asyncio
 
-import ../exports/procargsresult
 
 type
     StreamsBuilder* = ref object
@@ -11,7 +10,7 @@ type
         transferWaiters: seq[Future[void]]
         closeWhenCapturesFlushed: seq[AsyncIoBase]
 
-    BuilderFlags* = enum
+    BuilderFlags* {.pure.} = enum
         InteractiveStdin, InteractiveOut,
         CaptureStdin, CaptureStdout, CaptureStderr
         MergeStderr
@@ -82,7 +81,7 @@ proc buildOutInteractiveImpl(stream: var AsyncIoBase; stdStream,
         stream = AsyncTeeWriter.new(stream, stdStreamDelayed)
 
 proc buildOutInteractive(builder: StreamsBuilder) =
-    if MergeStderr in builder.flags:
+    if BuilderFlags.MergeStderr in builder.flags:
         builder.stdout.buildOutInteractiveImpl(stdoutAsync, stdoutAsync)
         builder.stderr = builder.stdout
     else:
@@ -189,7 +188,7 @@ proc buildToChildFile*(builder: StreamsBuilder; closeEvent: Future[
             pipe.reader
     let stdout = builder.buildOutChildFileImpl(builder.stdout)
     let stderr =
-        if MergeStderr in builder.flags:
+        if BuilderFlags.MergeStderr in builder.flags:
             stdout
         else:
             builder.buildOutChildFileImpl(builder.stderr)
