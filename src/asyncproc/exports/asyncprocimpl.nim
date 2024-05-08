@@ -4,7 +4,6 @@ import asyncsync, asyncsync/osevents
 
 import ./procargsresult {.all.}
 import ./procenv {.all.}
-import ../private/streamsbuilder
 
 when defined(windows):
     raise newException(LibraryError)
@@ -24,9 +23,9 @@ type
         cmd: seq[string] # for debugging purpose
         procArgs: ProcArgs # for debugging purpose
         captureStreams: tuple[input, output, outputErr: Future[string]]
-        closeWhenCapturesFlushed: seq[AsyncIoBase]
+        flushedEvent: Future[void]
+        closeEvent: Future[void]
         hasExitedEvent: ProcessEvent
-        afterWaitCleanup: proc(): Future[void]
 
 var RunningProcesses*: seq[AsyncProc]
 ## RunningProcesses list process that have been spawned with Register flag and have not been waited.
@@ -68,31 +67,48 @@ proc start*(sh: ProcArgs, cmd: seq[string],
         return AsyncProc(childProc: ChildProc(), fullCmd: cmdBuilt,
                 procArgs: args)
 
-    #[ Parent stream incluse logic ]#
-    var streamsBuilder = StreamsBuilder.init(args.input, args.output, args.outputErr,
-                            KeepStreamOpen in args.options, MergeStderr in args.options)
+    #[ Stream logic ]#
+    var
+        inputChainList = @[args.input]
+        outputList = @[args.output]
+        outputErrList = @[args.outputErr]
     if Interactive in args.options:
-        streamsBuilder.flags.incl {InteractiveStdin, InteractiveOut}
-    if CaptureInput in args.options:
-        streamsBuilder.flags.incl CaptureStdin
-    if CaptureOutput in args.options:
-        streamsBuilder.flags.incl CaptureStdout
-    if CaptureOutputErr in args.options and MergeStderr notin args.options:
-        streamsBuilder.flags.incl CaptureStderr
-    let (passFds, captures, useFakePty, closeWhenCapturesFlushed, afterSpawn, afterWait) =
-        streamsBuilder.toChildStream()
-    let childProc = startProcess(cmdBuilt[0], @[processName] & cmdBuilt[1..^1],
-        passFds, env, args.workingDir,
-        Daemon in args.options, fakePty = useFakePty, IgnoreInterrupt in args.options)
-    afterSpawn()
+        if inputChainList[0] != stdinAsync:
+            inputChainList.add stdinAsync
+        if MergeStderr in args.options:
+            if outputList[0] != stdoutAsync:
+                outputList.add stdoutAsync
+        else:
+            if outputList[0] != stdoutAsync:
+                outputList.add AsyncIoDelayed.new(stdoutAsync, 1)
+            if outputErrList[0] != stderrAsync:
+                outputErrList.add AsyncIoDelayed.new(stderrAsync, 2)
+
+    var closeEvent: Future[void]
+    var (
+        childProc,
+        stdinCapture, stdoutCapture, stderrCapture,
+        flushedEvent
+        ) = buildStreamsAndSpawn(args, closeEvent,
+            cmdBuilt[0], processName, cmdBuilt[1..^1],
+            env)
+    var captureStreams: tuple[input, output, outputErr: Future[string]]
+    if stdinCapture != nil: captureStreams.input = stdinCapture.readAll()
+    if stdoutCapture != nil: captureStreams.output = stdoutCapture.readAll()
+    if stderrCapture != nil: captureStreams.outputErr = stderrCapture.readAll()
+    flushedEvent = flushedEvent.then(proc(): Future[void] =
+        if stdinCapture != nil: stdinCapture.close()
+        if stdoutCapture != nil: stdoutCapture.close()
+        if stderrCapture != nil: stderrCapture.close()
+    )
     result = AsyncProc(
         childProc: childProc,
         fullCmd: cmdBuilt,
         cmd: cmd,
         procArgs: args,
-        captureStreams: captures,
-        closeWhenCapturesFlushed: closeWhenCapturesFlushed,
-        afterWaitCleanup: afterWait,
+        captureStreams: captureStreams,
+        flushedEvent: flushedEvent,
+        closeEvent: closeEvent,
     )
     if RegisterProcess in args.options:
         RunningProcesses.add result
@@ -126,7 +142,7 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[
     let exitCode = self.childProc.wait()
     if RegisterProcess in self.procArgs.options:
         RunningProcesses.delete(RunningProcesses.find(self))
-    await self.afterWaitCleanup()
+    self.closeEvent.complete()
     result = ProcResult(
         fullCmd: self.fullCmd,
         cmd: self.cmd,
@@ -149,9 +165,8 @@ proc wait*(self: AsyncProc, cancelFut: Future[void] = nil): Future[
         success: exitCode == 0,
         procArgs: self.procArgs,
     )
+    await self.flushedEvent
     result.setOnErrorFn(self.procArgs.onErrorFn) # Private field
-    for stream in self.closeWhenCapturesFlushed:
-        stream.close()
     if self.procArgs.logFn != nil:
         self.procArgs.logFn(result)
 

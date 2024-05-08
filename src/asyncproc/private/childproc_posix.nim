@@ -2,14 +2,14 @@ import std/[os, exitprocs, posix, termios, bitops, options]
 import std/[tables, strutils]
 import asyncio
 
-import ./streamsbuilder
+import ../exports/procargsresult {.all.}
 
 ## SIGINT is ignored in main process, preventing it from being accidentally killed
 ## warning..:
 ##      when using `nim r program.nim`, program.nim is a child process of choosenim and is catched by choosenim
 ##      https://github.com/nim-lang/Nim/issues/23573
 onSignal(SIGINT):
-    discard
+    discard sig
 
 # Library
 var PR_SET_PDEATHSIG {.importc, header: "<sys/prctl.h>".}: cint
@@ -32,123 +32,6 @@ const defaultPassFds = @[
 
 var TermiosBackup: Option[Termios]
 
-proc newPtyPair(): tuple[master, slave: AsyncFile] =
-    var master, slave: cint
-    # default termios param shall be ok
-    if openpty(master, slave, nil, nil, nil) == -1: raiseOSError(osLastError())
-    return (AsyncFile.new(master), AsyncFile.new(slave))
-
-proc restoreTerminal() =
-    if TermiosBackup.isSome():
-        if tcsetattr(STDIN_FILENO, TCSANOW, addr TermiosBackup.get()) == -1:
-            raiseOSError(osLastError())
-
-proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
-    if TermiosBackup.isNone():
-        TermiosBackup = some Termios()
-        if tcGetAttr(STDIN_FILENO, addr TermiosBackup.get()) ==
-                -1: raiseOSError(osLastError())
-        addExitProc(proc() = restoreTerminal())
-    var newParentTermios: Termios
-    # Make the parent raw
-    newParentTermios = TermiosBackup.get()
-    newParentTermios.c_lflag.clearMask(ICANON)
-    newParentTermios.c_lflag.clearMask(ISIG)
-    newParentTermios.c_lflag.clearMask(ECHO)
-    newParentTermios.c_cc[VMIN] = 1.char
-    newParentTermios.c_cc[VTIME] = 0.char
-    if tcsetattr(STDIN_FILENO, TCSANOW, addr newParentTermios) ==
-            -1: raiseOSError(osLastError())
-    return newPtyPair()
-
-proc toChildStream*(streamsBuilder: StreamsBuilder): tuple[
-    passFds: seq[tuple[src: FileHandle; dest: FileHandle]];
-    captures: tuple[input, output, outputErr: Future[string]];
-    useFakePty: bool;
-    closeWhenCapturesFlushed: seq[AsyncIoBase];
-    afterSpawn: proc() {.closure.};
-    afterWait: proc(): Future[void] {.closure.};
- ] =
-    if streamsBuilder.nonStandardStdin():
-        var (master, slave) = newChildTerminalPair()
-        var closeEvent = newFuture[void]()
-        if MergeStderr in streamsBuilder.flags:
-            var (streams, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
-                ) = streamsBuilder.buildToStreams()
-            discard streams.stdin.transfer(master, closeEvent)
-            transferWaiters.add master.transfer(streams.stdout)
-            closeWhenCapturesFlushed.add master
-            return (
-                passFds: toPassFds(slave, slave, slave),
-                captures: captures,
-                useFakePty: true,
-                closeWhenCapturesFlushed: closeWhenCapturesFlushed,
-                afterSpawn: proc() = slave.close(),
-                afterWait: proc(): Future[void] {.async.} =
-                closeEvent.complete()
-                await all(transferWaiters)
-                for s in closeWhenWaited:
-                    s.close()
-                restoreTerminal()
-            )
-        else:
-            var stdoutCapture = AsyncPipe.new()
-            var stderrCapture = AsyncPipe.new()
-            streamsBuilder.addStreamtoStdout(slave)
-            streamsBuilder.addStreamtoStderr(slave)
-            streamsBuilder.flags.excl InteractiveOut
-            var (streams, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
-                ) = streamsBuilder.buildToStreams()
-            transferWaiters.add (stdoutCapture.transfer(streams.stdout) and
-                    stderrCapture.transfer(streams.stderr)).then(proc() {.async.} =
-                await stdoutCapture.clear() and stderrCapture.clear()
-                slave.close()
-                stdoutCapture.close()
-                stderrCapture.close())
-            transferWaiters.add master.transfer(stderrAsync).then(proc() {.async.} = master.close())
-            discard streams.stdin.transfer(master, closeEvent)
-            return (
-                passFds: toPassFds(slave, stdoutCapture.writer,
-                        stderrCapture.writer),
-                captures: captures,
-                useFakePty: true,
-                closeWhenCapturesFlushed: closeWhenCapturesFlushed,
-                afterSpawn: (proc() =
-                stdoutCapture.writer.close()
-                stderrCapture.writer.close()
-            ),
-                afterWait: proc(): Future[void] {.async.} =
-                closeEvent.complete()
-                await all(transferWaiters)
-                for s in closeWhenWaited:
-                    s.close()
-                restoreTerminal()
-            )
-    else:
-        var closeEvent = newFuture[void]()
-        var (stdFiles, captures, transferWaiters, closeWhenWaited, closeWhenCapturesFlushed
-            ) = streamsBuilder.buildToChildFile(closeEvent)
-        return (
-            passFds: toPassFds(stdFiles.stdin, stdFiles.stdout,
-                    stdFiles.stderr),
-            captures: captures,
-            useFakePty: false,
-            closeWhenCapturesFlushed: closeWhenCapturesFlushed,
-            afterSpawn: (proc() =
-            for stream in [stdFiles.stdin, stdFiles.stdout, stdFiles.stderr]:
-                let streamIdx = closeWhenWaited.find(stream)
-                if streamIdx != -1:
-                    closeWhenWaited[streamIdx].close()
-                    closeWhenWaited.del(streamIdx)
-        ),
-            afterWait: proc(): Future[void] {.async.} =
-            closeEvent.complete()
-            await all(transferWaiters)
-            for s in closeWhenWaited:
-                s.close()
-        )
-
-
 proc waitImpl(p: var ChildProc; hang: bool) =
     if p.hasExited:
         return
@@ -168,6 +51,25 @@ proc wait*(p: var ChildProc): int =
     ## Block main thread
     p.waitImpl(true)
     return p.exitCode
+
+proc getPid*(p: ChildProc): int =
+    p.pid
+
+proc running*(p: var ChildProc): bool =
+    p.waitImpl(false)
+    return not p.hasExited
+
+proc suspend*(p: ChildProc) =
+    if posix.kill(p.pid, SIGSTOP) != 0'i32: raiseOSError(osLastError())
+
+proc resume*(p: ChildProc) =
+    if posix.kill(p.pid, SIGCONT) != 0'i32: raiseOSError(osLastError())
+
+proc terminate*(p: ChildProc) =
+    if posix.kill(p.pid, SIGTERM) != 0'i32: raiseOSError(osLastError())
+
+proc kill*(p: ChildProc) =
+    if posix.kill(p.pid, SIGKILL) != 0'i32: raiseOSError(osLastError())
 
 proc envToCStringArray(t: Table[string, string]): cstringArray =
     ## from std/osproc
@@ -281,22 +183,203 @@ ignoreInterrupt = false): ChildProc =
     if errorMsg.len() != 0: raise newException(OSError, errorMsg)
     return ChildProc(pid: pid, hasExited: false)
 
-proc getPid*(p: ChildProc): int =
-    p.pid
+proc newPtyPair(): tuple[master, slave: AsyncFile] =
+    var master, slave: cint
+    # default termios param shall be ok
+    if openpty(master, slave, nil, nil, nil) == -1: raiseOSError(osLastError())
+    return (AsyncFile.new(master), AsyncFile.new(slave))
 
-proc running*(p: var ChildProc): bool =
-    p.waitImpl(false)
-    return not p.hasExited
+proc restoreTerminal() =
+    if TermiosBackup.isSome():
+        if tcsetattr(STDIN_FILENO, TCSANOW, addr TermiosBackup.get()) == -1:
+            raiseOSError(osLastError())
 
-proc suspend*(p: ChildProc) =
-    if posix.kill(p.pid, SIGSTOP) != 0'i32: raiseOSError(osLastError())
+proc newChildTerminalPair(): tuple[master, slave: AsyncFile] =
+    if TermiosBackup.isNone():
+        TermiosBackup = some Termios()
+        if tcGetAttr(STDIN_FILENO, addr TermiosBackup.get()) ==
+                -1: raiseOSError(osLastError())
+        addExitProc(proc() = restoreTerminal())
+    var newParentTermios: Termios
+    # Make the parent raw
+    newParentTermios = TermiosBackup.get()
+    newParentTermios.c_lflag.clearMask(ICANON)
+    newParentTermios.c_lflag.clearMask(ISIG)
+    newParentTermios.c_lflag.clearMask(ECHO)
+    newParentTermios.c_cc[VMIN] = 1.char
+    newParentTermios.c_cc[VTIME] = 0.char
+    if tcsetattr(STDIN_FILENO, TCSANOW, addr newParentTermios) ==
+            -1: raiseOSError(osLastError())
+    return newPtyPair()
 
-proc resume*(p: ChildProc) =
-    if posix.kill(p.pid, SIGCONT) != 0'i32: raiseOSError(osLastError())
+proc buildStreamsAndSpawn*(procArgs: ProcArgs, closeEvent: Future[void],
+        command, processName: string;
+        args: seq[string]; ## Not including process name
+        env: Table[string, string]
+    ): tuple[
+            childProc: ChildProc;
+            stdinCapture, stdoutCapture, stderrCapture: AsyncIoBase;
+            flushedEvent: Future[void];
+        ] =
+    # Many methods are possible to build the streams
+    # To ensure readability, maintanability, etc. The dumbest and most imperative solution is choosen
+    var flushedEvents: seq[Future[void]]
+    var ptyPair: tuple[master, slave: AsyncFile] = (nil, nil)
+    var useFakePty = false
+    
+    #[ Build Stdin ]#
+    var stdinChild: AsyncFile
+    var stdinCapture: AsyncIoBase
+    if Interactive notin procArgs.options and procArgs.input == nil:
+        stdinChild = nil
+    elif Interactive notin procArgs.options and CaptureInput notin procArgs.options:
+        if procArgs.input of AsyncFile:
+            stdinChild = AsyncFile(procArgs.input)
+        else:
+            let pipe = AsyncPipe.new()
+            stdinChild = pipe.writer
+            transfer(procArgs.input, pipe.reader, closeEvent).addCallback(
+                proc() = pipe.reader.close()
+            )
+    elif Interactive notin procArgs.options and CaptureInput in procArgs.options:
+        let pipe = AsyncPipe.new()
+        let capture = AsyncStream.new()
+        stdinChild = pipe.reader
+        stdinCapture = capture.reader
+        transfer(
+            AsyncTeeReader.new(procArgs.input, capture.writer),
+            pipe.writer,
+            closeEvent
+            ).addCallback(proc() =
+                pipe.writer.close()
+                capture.writer.close()
+            )
+    elif Interactive in procArgs.options and CaptureInput notin procArgs.options and procArgs.input == nil:
+        stdinChild = stdinAsync
+    elif Interactive in procArgs.options and (CaptureInput in procArgs.options or procArgs.input != nil):
+        ptyPair = newChildTerminalPair()
+        useFakePty = true
+        var newInput: AsyncIoBase
+        if procArgs.input != nil and CaptureInput notin procArgs.options:
+            newInput = AsyncChainReader.new(procArgs.input, stdinAsync)
+        elif procArgs.input == nil and CaptureInput in procArgs.options:
+            var capture = AsyncStream.new()
+            newInput = AsyncTeeReader.new(stdinAsync, capture.writer)
+            closeEvent.addCallback(proc() = capture.reader.close())
+        elif procArgs.input != nil and CaptureInput in procArgs.options:
+            var capture = AsyncStream.new()
+            newInput = AsyncTeeReader.new(
+                AsyncChainReader.new(procArgs.input, stdinAsync), capture.writer
+            )
+            closeEvent.addCallback(proc() = capture.reader.close())
+        discard transfer(newInput, ptyPair.master, closeEvent)
+    
+    #[ Build Stdout/Stderr Commons ]#
+    proc builtOutStream(outStream: AsyncIoBase, captureFlag: bool,
+            childStream: var AsyncFile, captureStream: var AsyncIoBase) =
+        if Interactive notin procArgs.options and outStream == nil:
+            childStream = nil
+        elif Interactive notin procArgs.options and not captureFlag:
+            if outStream of AsyncFile:
+                childStream = AsyncFile(outStream)
+            else:
+                let pipe = AsyncPipe.new()
+                childStream = pipe.reader
+                flushedEvents.add transfer(pipe.writer, outStream, closeEvent).then(
+                    proc(): Future[void] =
+                        pipe.writer.close()
+                        return newCompletedFuture()
+                )
+        elif Interactive notin procArgs.options and captureFlag:
+            let pipe = AsyncPipe.new()
+            let capture = AsyncStream.new()
+            childStream = pipe.writer
+            captureStream = capture.reader
+            flushedEvents.add transfer(pipe.reader, outStream, closeEvent
+                ).then(proc(): Future[void] =
+                    pipe.reader.close()
+                    capture.writer.close()
+                    return newCompletedFuture()
+            )
+    proc makeInteractive(outStream, parentStream: AsyncIoBase, captureFlag: bool, closeEvent: Future[void]): AsyncIoBase =
+        if outStream != nil and not captureFlag:
+            return AsyncTeeWriter.new(outStream, parentStream)
+        elif outStream == nil and captureFlag:
+            var capture = AsyncStream.new()
+            var newOutStream = AsyncTeeWriter.new(outStream, capture)
+            closeEvent.addCallback(proc() = capture.reader.close())
+            return newOutStream
+        elif outStream != nil and captureFlag:
+            var capture = AsyncStream.new()
+            var newOutStream = AsyncTeeWriter.new(
+                outStream, parentStream, capture.writer
+            )
+            closeEvent.addCallback(proc() = capture.reader.close())
+            return newOutStream
 
-proc terminate*(p: ChildProc) =
-    if posix.kill(p.pid, SIGTERM) != 0'i32: raiseOSError(osLastError())
+    #[ Build Stdout/Stderr ]#
+    var stdoutChild, stderrChild: AsyncFile
+    var stdoutCapture, stderrCapture: AsyncIoBase
+    if ptyPair.master == nil and MergeStderr in procArgs.options:
+        builtOutStream(procArgs.output, CaptureOutput in procArgs.options, stdoutChild, stdoutCapture)
+        stderrChild = stdoutChild
+    elif ptyPair.master == nil and MergeStderr notin procArgs.options:
+        builtOutStream(AsyncTeeWriter.new(procArgs.output, AsyncIoDelayed.new(stdoutAsync, 1)),
+            CaptureOutput in procArgs.options, stdoutChild, stdoutCapture)
+        builtOutStream(AsyncTeeWriter.new(procArgs.outputErr, AsyncIoDelayed.new(stdoutAsync, 1)),
+            CaptureOutputErr in procArgs.options, stderrChild, stderrCapture)
+    elif ptyPair.master != nil and MergeStderr in procArgs.options:
+        stdoutChild = ptyPair.slave
+        stderrChild = ptyPair.slave
+        var newOutput = makeInteractive(procArgs.output, stdoutAsync, CaptureOutput in procArgs.options, closeEvent)
+        flushedEvents.add transfer(ptyPair.master, newOutput).then(
+            proc(): Future[void] =
+                ptyPair.master.close()
+                restoreTerminal()
+                return newCompletedFuture()
+        )            
+    elif ptyPair.master != nil and MergeStderr notin procArgs.options:
+        var newOutput = makeInteractive(procArgs.output, AsyncIoDelayed.new(stdoutAsync, 1),
+            CaptureOutput in procArgs.options, closeEvent)
+        var newOutputErr = makeInteractive(procArgs.outputErr, AsyncIoDelayed.new(stderrAsync, 2),
+            CaptureOutputErr in procArgs.options, closeEvent)
+        var pipeOut = AsyncPipe.new()
+        var pipeErr = AsyncPipe.new()
+        stdoutChild = pipeOut.writer
+        stderrChild = pipeErr.writer
+        flushedEvents.add (
+                transfer(pipeOut.reader, newOutput) and
+                transfer(pipeErr.reader, newOutputErr)
+            ).then(
+                proc() {.async.} =
+                    await stdoutCapture.clear() and stderrCapture.clear()
+                    ptyPair.slave.close()
+                    stdoutCapture.close()
+                    stderrCapture.close()
+                )
+        flushedEvents.add transfer(ptyPair.master, stdoutAsync).then(
+            proc(): Future[void] =
+                ptyPair.master.close()
+                restoreTerminal()
+                return newCompletedFuture()
+            )
 
-proc kill*(p: ChildProc) =
-    if posix.kill(p.pid, SIGKILL) != 0'i32: raiseOSError(osLastError())
-
+    #[ Spawn ChildProc ]#
+    var passFds: seq[(FileHandle, FileHandle)]
+    if stdinChild != nil:
+        passFds.add (stdinChild.fd, STDIN_FILENO.FileHandle)
+    if stdoutChild != nil:
+        passFds.add (stdoutChild.fd, STDOUT_FILENO.FileHandle)
+    if stderrChild != nil:
+        passFds.add (stderrChild.fd, STDERR_FILENO.FileHandle)
+    let childProc = startProcess(command, processName & args,
+        passFds, env, procArgs.workingDir,
+        Daemon in procArgs.options, fakePty = useFakePty, IgnoreInterrupt in procArgs.options)
+    if stdinChild != nil: stdinChild.close()
+    if stdoutChild != nil: stdoutChild.close()
+    if stderrChild != nil: stderrChild.close()
+    return (
+        childProc,
+        stdinCapture, stdoutCapture, stderrCapture,
+        all(flushedEvents)
+    )

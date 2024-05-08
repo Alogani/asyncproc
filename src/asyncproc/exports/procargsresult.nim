@@ -84,7 +84,7 @@ type
         Command that is put before the actual command being run. Must be capable of evaluating a command, like:
         - `@["sh", "-c"]`
         - `@["chroot", "path"]`
-        - `@["ssh, "address"]`
+        - `@["ssh", "address"]`
         ### options
         All the high level tweaking available for the childProcess
         ### env
