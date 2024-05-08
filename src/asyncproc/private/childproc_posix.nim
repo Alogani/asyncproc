@@ -275,63 +275,83 @@ proc buildStreamsAndSpawn*(procArgs: ProcArgs, closeEvent: Future[void],
         discard transfer(newInput, ptyPair.master, closeEvent)
     
     #[ Build Stdout/Stderr Commons ]#
-    proc builtOutStream(outStream: AsyncIoBase, captureFlag: bool,
-            childStream: var AsyncFile, captureStream: var AsyncIoBase) =
-        if Interactive notin procArgs.options and outStream == nil:
-            childStream = nil
-        elif Interactive notin procArgs.options and not captureFlag:
+    proc makeInteractive(outStream, parentStream: AsyncIoBase, captureFlag: bool,
+                closeEvent: Future[void]): tuple[childStream: AsyncIoBase, captureStream: AsyncIoBase] =
+        if outStream != nil and not captureFlag:
+            return (AsyncTeeWriter.new(outStream, parentStream), nil)
+        elif outStream == nil and captureFlag:
+            var capture = AsyncStream.new()
+            var newOutStream = AsyncTeeWriter.new(parentStream, capture)
+            return (newOutStream, capture.reader)
+        elif outStream != nil and captureFlag:
+            var capture = AsyncStream.new()
+            var newOutStream = AsyncTeeWriter.new(
+                outStream, parentStream, capture.writer
+            )
+            return (newOutStream, capture.reader)
+    proc builtOutStream(outStream, parentStream: AsyncIoBase, captureFlag: bool,
+            closeEvent: Future[void]): tuple[childStream: AsyncFile, captureStream: AsyncIoBase] =
+        ## If parentstream == nil, means not interactive
+        if parentStream == nil and outStream == nil:
+            return (nil, nil)
+        elif parentStream == nil and not captureFlag:
             if outStream of AsyncFile:
-                childStream = AsyncFile(outStream)
+                return (AsyncFile(outStream), nil)
             else:
                 let pipe = AsyncPipe.new()
-                childStream = pipe.reader
-                flushedEvents.add transfer(pipe.writer, outStream, closeEvent).then(
+                flushedEvents.add transfer(pipe.reader, outStream, closeEvent).then(
                     proc(): Future[void] =
-                        pipe.writer.close()
+                        pipe.reader.close()
                         return newCompletedFuture()
                 )
-        elif Interactive notin procArgs.options and captureFlag:
+                return (pipe.writer, nil)
+        elif parentStream == nil and captureFlag and outStream == nil:
+            let pipe = AsyncPipe.new()
+            return (pipe.writer, pipe.reader)
+        elif parentStream == nil and captureFlag and outStream != nil:
             let pipe = AsyncPipe.new()
             let capture = AsyncStream.new()
-            childStream = pipe.writer
-            captureStream = capture.reader
             flushedEvents.add transfer(pipe.reader, outStream, closeEvent
                 ).then(proc(): Future[void] =
                     pipe.reader.close()
                     capture.writer.close()
                     return newCompletedFuture()
             )
-    proc makeInteractive(outStream, parentStream: AsyncIoBase, captureFlag: bool, closeEvent: Future[void]): AsyncIoBase =
-        if outStream != nil and not captureFlag:
-            return AsyncTeeWriter.new(outStream, parentStream)
-        elif outStream == nil and captureFlag:
-            var capture = AsyncStream.new()
-            var newOutStream = AsyncTeeWriter.new(outStream, capture)
-            closeEvent.addCallback(proc() = capture.reader.close())
-            return newOutStream
-        elif outStream != nil and captureFlag:
-            var capture = AsyncStream.new()
-            var newOutStream = AsyncTeeWriter.new(
-                outStream, parentStream, capture.writer
-            )
-            closeEvent.addCallback(proc() = capture.reader.close())
-            return newOutStream
+            return (pipe.writer, capture.reader)
+        elif parentStream != nil:
+            var (newOutStream, captureReader) = makeInteractive(outStream, parentStream, captureFlag, closeEvent)
+            if newOutStream of AsyncFile:
+                return (AsyncFile(newOutStream), captureReader)
+            else:
+                let pipe = AsyncPipe.new()
+                flushedEvents.add transfer(pipe.reader, newOutStream, closeEvent).then(
+                    proc(): Future[void] =
+                        pipe.reader.close()
+                        return newCompletedFuture()
+                )
+                return (pipe.writer, captureReader)
+
 
     #[ Build Stdout/Stderr ]#
     var stdoutChild, stderrChild: AsyncFile
     var stdoutCapture, stderrCapture: AsyncIoBase
     if ptyPair.master == nil and MergeStderr in procArgs.options:
-        builtOutStream(procArgs.output, CaptureOutput in procArgs.options, stdoutChild, stdoutCapture)
+        var parentStdout = (if Interactive in procArgs.options: stdoutAsync else: nil)
+        (stdoutChild, stdoutCapture) = builtOutStream(procArgs.output, parentStdout,
+            CaptureOutput in procArgs.options, closeEvent)
         stderrChild = stdoutChild
     elif ptyPair.master == nil and MergeStderr notin procArgs.options:
-        builtOutStream(AsyncTeeWriter.new(procArgs.output, AsyncIoDelayed.new(stdoutAsync, 1)),
-            CaptureOutput in procArgs.options, stdoutChild, stdoutCapture)
-        builtOutStream(AsyncTeeWriter.new(procArgs.outputErr, AsyncIoDelayed.new(stdoutAsync, 1)),
-            CaptureOutputErr in procArgs.options, stderrChild, stderrCapture)
+        var parentStdout = (if Interactive in procArgs.options: AsyncIoDelayed.new(stdoutAsync, 1) else: nil)
+        var parentStderr = (if Interactive in procArgs.options: AsyncIoDelayed.new(stderrAsync, 2) else: nil)
+        (stdoutChild, stdoutCapture) = builtOutStream(procArgs.output, parentStdout,
+            CaptureOutput in procArgs.options, closeEvent)
+        (stderrChild, stderrCapture) = builtOutStream(procArgs.outputErr, parentStderr,
+            CaptureOutput in procArgs.options, closeEvent)
     elif ptyPair.master != nil and MergeStderr in procArgs.options:
         stdoutChild = ptyPair.slave
         stderrChild = ptyPair.slave
-        var newOutput = makeInteractive(procArgs.output, stdoutAsync, CaptureOutput in procArgs.options, closeEvent)
+        var (newOutput, captureReader) = makeInteractive(procArgs.output, stdoutAsync, CaptureOutput in procArgs.options, closeEvent)
+        stdoutCapture = captureReader
         flushedEvents.add transfer(ptyPair.master, newOutput).then(
             proc(): Future[void] =
                 ptyPair.master.close()
@@ -339,10 +359,12 @@ proc buildStreamsAndSpawn*(procArgs: ProcArgs, closeEvent: Future[void],
                 return newCompletedFuture()
         )            
     elif ptyPair.master != nil and MergeStderr notin procArgs.options:
-        var newOutput = makeInteractive(procArgs.output, AsyncIoDelayed.new(stdoutAsync, 1),
+        var (newOutput, captureOutReader) = makeInteractive(procArgs.output, AsyncIoDelayed.new(stdoutAsync, 1),
             CaptureOutput in procArgs.options, closeEvent)
-        var newOutputErr = makeInteractive(procArgs.outputErr, AsyncIoDelayed.new(stderrAsync, 2),
+        var (newOutputErr, captureErrReader) = makeInteractive(procArgs.outputErr, AsyncIoDelayed.new(stderrAsync, 2),
             CaptureOutputErr in procArgs.options, closeEvent)
+        stdoutCapture = captureOutReader
+        stderrCapture = captureErrReader
         var pipeOut = AsyncPipe.new()
         var pipeErr = AsyncPipe.new()
         stdoutChild = pipeOut.writer

@@ -97,6 +97,10 @@ proc start*(sh: ProcArgs, cmd: seq[string],
     if stdoutCapture != nil: captureStreams.output = stdoutCapture.readAll()
     if stderrCapture != nil: captureStreams.outputErr = stderrCapture.readAll()
     flushedEvent = flushedEvent.then(proc(): Future[void] =
+        if KeepStreamOpen notin args.options:
+            if args.input != nil: args.input.close()
+            if args.output != nil: args.output.close()
+            if args.outputErr != nil: args.outputErr.close()
         if stdinCapture != nil: stdinCapture.close()
         if stdoutCapture != nil: stdoutCapture.close()
         if stderrCapture != nil: stderrCapture.close()
